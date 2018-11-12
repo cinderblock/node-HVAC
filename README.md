@@ -1,6 +1,6 @@
-# Party-Lights
+# Node Server UI base
 
-Web UI to control ESP-Lights
+Skeleton for a sever/client JavaScript pair.
 
 ## Development
 
