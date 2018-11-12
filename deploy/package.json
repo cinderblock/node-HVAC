@@ -1,0 +1,14 @@
+{
+  "name": "deploy",
+  "version": "0.0.0",
+  "scripts": {
+    "setup": "yarn install --non-interactive --silent && yarn",
+    "daemondebug": "node ./run-with-local-log.js"
+  },
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "@cinderblock/node-git-wip": "^0.6.1",
+    "node-ssh": "^5.1.2"
+  }
+}

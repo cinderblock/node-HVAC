@@ -1,0 +1,23 @@
+{
+  "name": "node-server-ui-base",
+  "version": "0.0.0",
+  "description": "Coupled daemon and UI with bundled deploy scripts",
+  "scripts": {
+    "install": "install-vscode-extensions",
+    "ui": "cd ui && yarn",
+    "daemon": "cd daemon && yarn",
+    "deploy": "cd deploy && yarn",
+    "remote": "node ./deploy/remote-yarn.js"
+  },
+  "repository": "git@github.com:cinderblock/node-server-ui-base.git",
+  "author": "Cameron Tacklind <cameron@tacklind.com>",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "install-vscode-extensions": "^1.0.0",
+    "prettier": "^1.15.2"
+  },
+  "dependencies": {
+    "yarn": "^1.12.3"
+  }
+}
