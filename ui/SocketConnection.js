@@ -13,11 +13,11 @@ const Store = {};
 
 socket.on('startuptime', u => (Store.startuptime = u));
 
-window.addEventListener(
-  'deviceorientation',
-  ({ alpha, beta, gamma }) =>
-    alpha !== null && socket.emit('event', { name: 'deviceorientation', value: { alpha, beta, gamma } })
-);
+window.addEventListener('deviceorientation', ({ alpha, beta, gamma }) => {
+  if (alpha === null) return;
+
+  socket.emit('event', { name: 'deviceorientation', value: { alpha, beta, gamma } });
+});
 
 const eventHandlers = {};
 
