@@ -4,7 +4,8 @@ const path = require('path');
 const webpack = require('webpack');
 
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-// const FaviconsWebpackPlugin = require('favicons-webpack-plugin');
+const FaviconsWebpackPlugin = require('favicons-webpack-plugin');
+const ErrorOverlayPlugin = require('error-overlay-webpack-plugin');
 
 module.exports = {
   entry: [
@@ -22,7 +23,8 @@ module.exports = {
       title: 'My Webpacked App',
       meta: { viewport: 'width=device-width, initial-scale=1, shrink-to-fit=no' },
     }),
-    // new FaviconsWebpackPlugin('./assets/icons8-confetti-64.png'),
+    new FaviconsWebpackPlugin('./assets/icons8-confetti-64.png'),
+    new ErrorOverlayPlugin(),
     // new webpack.HotModuleReplacementPlugin(),
   ],
   devServer: {
@@ -41,7 +43,7 @@ module.exports = {
         changeOrigin: true,
       },
     },
-    before(app, server) {
+    setup(app, server) {
       setImmediate(() => {
         const qrcode = require('qrcode-terminal');
         const chalk = require('chalk');
