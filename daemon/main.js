@@ -27,8 +27,8 @@ function Shutdown() {
 
     // Just kill the process in a short time in case we've forgotten to stop something...
     setTimeout(() => {
-      console.log('Something is still running...');
-      console.log('Forcing a shutdown.');
+      debug.error('Something is still running...');
+      debug.warn('Forcing a shutdown.');
       process.exit(0);
     }, 100).unref();
   });
