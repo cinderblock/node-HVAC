@@ -3,10 +3,10 @@ require('./utils/runningProcessChecker.js')('../daemon.pid', 'kill');
 
 // Local dependencies
 const debug = require('./utils/debug.js');
-const clientUI = require('./ClientUIHandler.js');
+const makeClientHandler = require('./ClientHandler.js');
 
-// Events from the UI and how to handle them
-const remoteControlServer = clientUI({
+// Events from the clients and how to handle them
+const remoteControlServer = makeClientHandler({
   // This event happens when mobile devices report their orientation data to the server.
   // This could be very useful as a remote.
   // Careful, this event happens at ~60Hz.
