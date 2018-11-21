@@ -14,9 +14,8 @@ const remoteControlServer = makeClientHandler({
     // debug.log(orientation);
   },
 
+  // Shut the whole thing down.
   Shutdown,
-
-  // More event handlers
 });
 
 debug.green('Hello, world.');
