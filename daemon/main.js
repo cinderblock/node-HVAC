@@ -1,3 +1,5 @@
+'use strict';
+
 // Check if a previous version is running first and kill them if they still are.
 require('./utils/runningProcessChecker.js')('../daemon.pid', 'kill');
 
