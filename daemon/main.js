@@ -22,12 +22,15 @@ const remoteControlServer = clientUI({
 debug.green('Hello, world.');
 
 function Shutdown() {
-  // Shutdown remote control server
-  remoteControlServer.close();
+  setImmediate(() => {
+    // Shutdown remote control server
+    remoteControlServer.close();
 
-  // Just kill the process in a short time since we're not great at stopping all
-  // running events
-  setTimeout(() => {
-    process.exit(0);
-  }, 100);
+    // Just kill the process in a short time in case we've forgotten to stop something...
+    setTimeout(() => {
+      console.log('Something is still running...');
+      console.log('Forcing a shutdown.');
+      process.exit(0);
+    }, 100).unref();
+  });
 }
