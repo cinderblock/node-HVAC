@@ -14,6 +14,7 @@
   "license": "MIT",
   "private": true,
   "devDependencies": {
+    "eslint": "^5.9.0",
     "install-vscode-extensions": "^1.0.0",
     "prettier": "^1.15.2"
   },
