@@ -14,7 +14,7 @@ module.exports = function setupClientSocket(eventHandlers) {
 
     // TODO: Do we trust the proxy to set true `x-real-ip` header?
     const headers = sock.conn.request.headers;
-    const address = headers['X-Forwarded-For'] || headers['x-real-ip'] || sock.handshake.address;
+    const address = headers['x-forwarded-for'] || headers['x-real-ip'] || sock.handshake.address;
     console.log(chalk.green('Client connected:'), chalk.cyan(address));
 
     // Give clients a our startup time once
