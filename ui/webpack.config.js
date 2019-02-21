@@ -41,6 +41,7 @@ module.exports = {
         target: 'http://localhost:8000',
         ws: true,
         // changeOrigin: true,
+        xfwd: true,
       },
     },
     setup(app, server) {
