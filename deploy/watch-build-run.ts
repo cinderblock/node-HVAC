@@ -55,14 +55,17 @@ export default async function watchBuildTransferRun(options: Options) {
     return options.remote.dir + local;
   }
 
+  async function updatePackageJson() {
+    setPendingRun();
+    await sftp.fastPut(options.localPath + 'package.json', options.remote.dir + '/package.json');
+    await remoteExecYarn();
+    allowExec();
+  }
+
   watch(options.localPath + 'package.json')
     .on('change', async (eventType: 'change' | 'rename', filename: string) => {
-      if (eventType == 'change') {
-        setPendingRun();
-        await sftp.fastPut(filename, options.remote.dir + '/package.json');
-        await remoteExecYarn();
-        allowExec();
-      }
+      if (eventType == 'change') updatePackageJson();
+      console.log('Change event:', eventType, filename);
     })
     .on('error', err => {
       // TODO: Error handling
