@@ -33,34 +33,31 @@ export default async function watchBuildTransferRun(options: Options) {
 
   await ssh.connect();
 
-  const sftp = ssh.sftp();
+  let sftp = ssh.sftp();
 
-  let pending = 0;
+  async function mkdir(dir: string) {
+    await sftp.mkdir(dir).catch(async e => {
+      console.log('Directory already exists?');
 
-  async function setPendingRun() {
-    pending++;
+      await ssh.connect();
+      sftp = ssh.sftp();
+    });
   }
 
-  async function allowExec() {
-    if (!--pending) remoteExecNode();
-  }
-
-  async function killRunning() {
-    // TODO: implement
-  }
-
-  function localPathToRemote(local: string): string {
-    // TODO: remove prefix from local
-
-    return options.remote.dir + local;
-  }
+  // mkdir(options.remote.dir);
 
   async function updatePackageJson() {
-    setPendingRun();
-    await sftp.fastPut(options.localPath + 'package.json', options.remote.dir + '/package.json');
+    console.log('Updating package.json');
+    console.log('Putting:', options.localPath + 'package.json', options.remote.dir + '/package.json');
+    await sftp.fastPut(options.localPath + 'package.json', options.remote.dir);
+    console.log('Updated package.json');
+    await sftp.fastPut(options.localPath + 'yarn.lock', options.remote.dir + '/yarn.lock');
+    console.log('Updated yarn.lock');
     await remoteExecYarn();
-    allowExec();
+    console.log('Yarn ran');
   }
+
+  await updatePackageJson();
 
   watch(options.localPath + 'package.json')
     .on('change', async (eventType: 'change' | 'rename', filename: string) => {
@@ -69,14 +66,16 @@ export default async function watchBuildTransferRun(options: Options) {
     })
     .on('error', err => {
       // TODO: Error handling
+      console.log('Watch error');
     })
     .on('close', () => {
       // TODO: Error handling
+      console.log('Watch close');
     });
 
   const host = ts.createWatchCompilerHost(
     configPath,
-    {},
+    { outDir: options.remote.dir },
     ts.sys,
     ts.createEmitAndSemanticDiagnosticsBuilderProgram,
     reportDiagnostic,
@@ -85,8 +84,8 @@ export default async function watchBuildTransferRun(options: Options) {
 
   const origCreateProgram = host.createProgram;
   host.createProgram = (rootNames: ReadonlyArray<string>, options, host, oldProgram) => {
+    console.log('Starting new compilation');
     killRunning();
-    setPendingRun();
     return origCreateProgram(rootNames, options, host, oldProgram);
   };
 
@@ -94,22 +93,32 @@ export default async function watchBuildTransferRun(options: Options) {
   host.afterProgramCreate = async program => {
     console.log('** We finished making the program! **');
 
-    program.emit(undefined, (filename, source) => {
-      const remoteFile = localPathToRemote(filename);
+    const files: [string, string][] = [];
 
-      sftp.writeFile(remoteFile, source, {});
+    program.emit(undefined, (filename, source) => {
+      files.push([filename, source]);
     });
 
-    allowExec();
+    for (let i = 0; i < files.length; i++) {
+      const [filename, source] = files[i];
+      await sftp.writeFile(filename, source, {});
+      console.log('Wrote:', filename);
+    }
+
+    remoteExecNode();
 
     // TODO: Check if there is something that this was doing that we needed.
     // origPostProgramCreate(program);
   };
 
   ts.createWatchProgram(host);
-  updatePackageJson();
+
+  let running;
+
+  async function killRunning() {}
 
   async function remoteExecNode() {
+    console.log('Running');
     try {
       return await ssh.exec('node', ['.'], {
         cwd: options.remote.dir,
@@ -117,7 +126,7 @@ export default async function watchBuildTransferRun(options: Options) {
         onStderr: chunk => process.stderr.write(chunk.toString('utf8')),
       });
     } catch (e) {
-      console.log('Error running remote node.', e);
+      console.log('Error running remote node.', e.toString('uft8'));
     }
   }
 
@@ -129,7 +138,7 @@ export default async function watchBuildTransferRun(options: Options) {
         onStderr: chunk => process.stderr.write(chunk.toString('utf8')),
       });
     } catch (e) {
-      console.log('Error running remote yarn.', e);
+      console.log('Error running remote yarn.', e.toString('uft8'));
     }
   }
 
