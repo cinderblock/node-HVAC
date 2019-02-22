@@ -8,9 +8,18 @@ Skeleton for a sever/client JavaScript pair.
 
 [**Node 10+**](https://nodejs.org/en/download) must be installed on your development system.
 
+#### Non-global Yarn?
+
+While easier if Yarn is installed globally, this works fine without it.
+
 ```bash
+# Installs yarn locally
 npm install
+# Setup development environment
+npm run dev
 ```
+
+> You can run any command from the cheat sheet by replacing `yarn` with `npm run`.
 
 ### Running
 
