@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "Coupled daemon and UI with bundled deploy scripts",
   "scripts": {
-    "install": "install-vscode-extensions",
+    "dev": "yarn && yarn daemon && yarn deploy && yarn ui && install-vscode-extensions",
     "ui": "cd ui && yarn",
     "daemon": "cd daemon && yarn",
     "deploy": "cd deploy && yarn",
