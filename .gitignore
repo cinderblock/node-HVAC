@@ -3,3 +3,4 @@ yarn-error.log
 daemon.pid
 daemon.sock
 daemon/build
+deploy/config.*
