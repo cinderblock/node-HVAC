@@ -5,6 +5,7 @@
     "checkSources": "tsc --noemit",
     "setup": "yarn install --non-interactive --silent && yarn",
     "daemondebug": "ts-node ./run-with-local-log.ts",
+    "daemon-dev": "ts-node ./watch-build-run.ts",
     "remote": "ts-node ./remote-yarn.ts"
   },
   "license": "MIT",
