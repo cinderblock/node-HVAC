@@ -107,6 +107,7 @@ export default async function watchBuildTransferRun(options: Options) {
   };
 
   ts.createWatchProgram(host);
+  updatePackageJson();
 
   async function remoteExecNode() {
     try {
