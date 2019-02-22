@@ -9,7 +9,7 @@ import config from './config';
 
 const { remote } = config;
 
-const remoteURL = `${remote.user}@${remote.host}:${remote.dir}`;
+const remoteURL = `${remote.username}@${remote.host}:${remote.dir}`;
 
 async function gitPush() {
   let repo = await NodeGit.Repository.open(resolve(__dirname, '..'));
@@ -48,11 +48,7 @@ async function deploy() {
 
   let pushPromise = gitPush();
 
-  let sshPromise = ssh.connect({
-    host: remote.host,
-    username: remote.user,
-    agent: 'pageant',
-  });
+  let sshPromise = ssh.connect(remote);
 
   let push = await pushPromise;
 

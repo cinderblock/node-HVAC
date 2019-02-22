@@ -24,11 +24,7 @@ async function remoteYarn() {
   try {
     const ssh = new SSH();
 
-    let sshConnection = await ssh.connect({
-      host: remote.host,
-      username: remote.user,
-      agent: 'pageant',
-    });
+    let sshConnection = await ssh.connect(remote);
 
     try {
       // TODO: Lock file to prevent multiple people running this at once
