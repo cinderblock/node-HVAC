@@ -7,7 +7,7 @@
     "ui": "cd ui && yarn",
     "daemon": "cd daemon && yarn",
     "deploy": "cd deploy && yarn",
-    "remote": "node ./deploy/remote-yarn.js"
+    "remote": "cd deploy && yarn remote"
   },
   "repository": "git@github.com:cinderblock/node-server-ui-base.git",
   "author": "Cameron Tacklind <cameron@tacklind.com>",

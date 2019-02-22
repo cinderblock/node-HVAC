@@ -1,13 +1,13 @@
-const os = require('os');
-const http = require('http');
+import { createServer } from 'http';
+import { uptime } from 'os';
 
-const chalk = require('chalk');
-const SocketIO = require('socket.io');
-const ServerStarter = require('server-starter');
+import chalk from 'chalk';
+import * as SocketIO from 'socket.io';
+import ServerStarter = require('server-starter');
 
 let clientID = 0;
 
-module.exports = function setupClientSocket(eventHandlers) {
+export default function setupClientSocket(eventHandlers) {
   // Helper function that is run every time a new webUI connects to us
   function setupClientSocket(sock) {
     const ID = clientID++;
@@ -18,7 +18,7 @@ module.exports = function setupClientSocket(eventHandlers) {
     console.log(chalk.green('Client connected:'), chalk.cyan(address));
 
     // Give clients a our startup time once
-    sock.emit('startuptime', Date.now() - os.uptime() * 1000);
+    sock.emit('startuptime', Date.now() - uptime() * 1000);
 
     // Don't listen to client events for a sec on startup.
     // Ignores events that were "sent" after server shutdown (and are therefore still pending)
@@ -43,9 +43,9 @@ module.exports = function setupClientSocket(eventHandlers) {
     }, 500);
   }
 
-  const server = new http.createServer();
+  const server = createServer();
 
-  const sock = new SocketIO(server, {
+  const sock = SocketIO(server, {
     serveClient: false,
     transports: ['websocket'],
     pingInterval: 1000,
@@ -82,4 +82,4 @@ module.exports = function setupClientSocket(eventHandlers) {
   }, 1000 / 30); // at 30 Hz
 
   return { close: () => sock.close() };
-};
+}

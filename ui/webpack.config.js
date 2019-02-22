@@ -1,32 +1,21 @@
 const path = require('path');
-
-// Even though `webpack` is not "used" in this file, it is required...
-const webpack = require('webpack');
-
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const FaviconsWebpackPlugin = require('favicons-webpack-plugin');
 const ErrorOverlayPlugin = require('error-overlay-webpack-plugin');
 
 module.exports = {
-  entry: [
-    // 'webpack-hot-middleware/client',
-    './main.jsx',
-  ],
-  output: {
-    filename: 'bundle.js',
-    path: path.resolve(__dirname, 'dist'),
-    publicPath: '/',
+  entry: {
+    main: './main.tsx',
   },
+  output: {
+    path: path.resolve(__dirname, 'bundle'),
+    filename: '[name].js',
+  },
+  resolve: {
+    extensions: ['.ts', '.tsx', '.js'],
+  },
+  devtool: 'source-map',
   mode: 'development',
-  plugins: [
-    new HtmlWebpackPlugin({
-      title: 'My Webpacked App',
-      meta: { viewport: 'width=device-width, initial-scale=1, shrink-to-fit=no' },
-    }),
-    new FaviconsWebpackPlugin('./assets/icons8-confetti-64.png'),
-    new ErrorOverlayPlugin(),
-    // new webpack.HotModuleReplacementPlugin(),
-  ],
   devServer: {
     port: 9001,
     host: '0.0.0.0',
@@ -66,16 +55,21 @@ module.exports = {
       });
     },
   },
-  devtool: 'cheap-module-source-map',
+  plugins: [
+    new HtmlWebpackPlugin({
+      title: 'My Webpacked App',
+      meta: { viewport: 'width=device-width, initial-scale=1, shrink-to-fit=no' },
+    }),
+    new FaviconsWebpackPlugin('./assets/icons8-confetti-96.png'),
+    new ErrorOverlayPlugin(),
+    // new webpack.HotModuleReplacementPlugin(),
+  ],
   module: {
     rules: [
       {
-        test: /\.jsx?$/,
-        loader: 'babel-loader',
+        test: /\.tsx?$/,
+        loader: 'ts-loader',
         exclude: /node_modules/,
-        query: {
-          presets: ['@babel/env', '@babel/react'],
-        },
       },
       {
         test: /\.less$/,
@@ -90,6 +84,7 @@ module.exports = {
       {
         test: /\.(png|woff|woff2|eot|ttf|svg)$/,
         loader: 'url-loader?limit=100000',
+        // Need file-loader?
       },
     ],
   },

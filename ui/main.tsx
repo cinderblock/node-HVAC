@@ -1,8 +1,8 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
 
-import AppContainer from './AppContainer.jsx';
-import { eventHandler } from './SocketConnection.js';
+import AppContainer from './AppContainer';
+import { eventHandler } from './SocketConnection';
 
 import './style.css';
 

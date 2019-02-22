@@ -1,4 +1,4 @@
-const fs = require('fs');
+import { readFileSync, writeFileSync } from 'fs';
 
 function isPidRunning(pid) {
   try {
@@ -8,17 +8,17 @@ function isPidRunning(pid) {
   }
 }
 
-function runningProcessChecker(pidFile, ifRunningBehavior = 'kill') {
-  let i = 0;
-  let start = process.hrtime();
+export default function runningProcessChecker(pidFile: string, ifRunningBehavior = 'kill') {
+  // let i = 0;
+  // let start = process.hrtime();
 
   try {
-    const pid = fs.readFileSync(pidFile, 'utf8');
+    const pid = +readFileSync(pidFile, 'utf8');
 
-    if (isPidRunning(pid)) {
+    if (pid && isPidRunning(pid)) {
       if (ifRunningBehavior == 'kill') {
         process.kill(pid);
-        while (isPidRunning(pid)) i++;
+        // while (isPidRunning(pid)) i++;
       } else if (ifRunningBehavior == 'die') {
         console.error('Process already running with pid:', pid);
         process.exit(1);
@@ -26,14 +26,12 @@ function runningProcessChecker(pidFile, ifRunningBehavior = 'kill') {
     }
   } catch (e) {}
 
-  let checkTime = process.hrtime(start);
+  // let checkTime = process.hrtime(start);
 
-  let killMillis = (checkTime[0] + checkTime[1] / 1e9) * 1e3;
+  // let killMillis = (checkTime[0] + checkTime[1] / 1e9) * 1e3;
 
   // console.log('Number of checks for dying process:', i);
   // console.log('Milliseconds it took to kill:', killMillis);
 
-  fs.writeFileSync(pidFile, process.pid, { mode: 0o664 });
+  writeFileSync(pidFile, process.pid, { mode: 0o664 });
 }
-
-module.exports = runningProcessChecker;

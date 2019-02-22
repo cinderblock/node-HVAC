@@ -2,13 +2,21 @@
   "name": "deploy",
   "version": "0.0.0",
   "scripts": {
+    "checkSources": "tsc --noemit",
     "setup": "yarn install --non-interactive --silent && yarn",
-    "daemondebug": "node ./run-with-local-log.js"
+    "daemondebug": "ts-node ./run-with-local-log.ts",
+    "remote": "ts-node ./remote-yarn.ts"
   },
   "license": "MIT",
   "private": true,
   "dependencies": {
     "@cinderblock/node-git-wip": "^0.6.1",
     "node-ssh": "^5.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^11.9.4",
+    "@types/nodegit": "^0.24.3",
+    "ts-node": "^8.0.2",
+    "typescript": "^3.3.3333"
   }
 }

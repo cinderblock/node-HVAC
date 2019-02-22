@@ -1,4 +1,4 @@
-import io from 'socket.io-client';
+import * as io from 'socket.io-client';
 
 // config
 const socketURL = undefined;
@@ -7,11 +7,13 @@ const socket = io(socketURL, {
   transports: ['websocket'],
 });
 
+export default socket;
+
 socket.on('error', console.log.bind(0, 'Error:'));
 
-const Store = {};
+export const Store: { startuptime?: Date } = {};
 
-socket.on('startuptime', u => (Store.startuptime = u));
+socket.on('startuptime', u => (Store.startuptime = new Date(u)));
 
 window.addEventListener('deviceorientation', ({ alpha, beta, gamma }) => {
   if (alpha === null) return;
@@ -22,7 +24,7 @@ window.addEventListener('deviceorientation', ({ alpha, beta, gamma }) => {
 const eventHandlers = {};
 
 // caches event handlers
-function eventHandler(name, log = true) {
+export function eventHandler(name, log = true) {
   if (eventHandlers[name]) return eventHandlers[name];
 
   return (eventHandlers[name] = value => {
@@ -39,5 +41,3 @@ function eventHandler(name, log = true) {
     console.log('Event:', name, '->', value === undefined ? 'value undefined' : value);
   });
 }
-
-export { socket as default, eventHandler, Store };

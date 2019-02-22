@@ -1,11 +1,13 @@
 'use strict';
 
 // Check if a previous version is running first and kill them if they still are.
-require('./utils/runningProcessChecker.js')('../daemon.pid', 'kill');
+import runningProcessChecker from './utils/runningProcessChecker';
+
+runningProcessChecker('../daemon.pid', 'kill');
 
 // Local dependencies
-const debug = require('./utils/debug.js');
-const makeClientHandler = require('./ClientHandler.js');
+import debug from './utils/debug';
+import makeClientHandler from './ClientHandler';
 
 // Events from the clients and how to handle them
 const remoteControlServer = makeClientHandler({

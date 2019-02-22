@@ -1,16 +1,18 @@
 #!/usr/bin/env node
-const path = require('path');
+import { resolve } from 'path';
 
-const wip = require('@cinderblock/node-git-wip');
-const SSH = require('node-ssh');
-const NodeGit = require('nodegit');
+import wip = require('@cinderblock/node-git-wip');
+import * as SSH from 'node-ssh';
+import * as NodeGit from 'nodegit';
 
-const { remote } = require('./config.js');
+import config from './config';
+
+const { remote } = config;
 
 const remoteURL = `${remote.user}@${remote.host}:${remote.dir}`;
 
 async function gitPush() {
-  let repo = await NodeGit.Repository.open(path.resolve(__dirname, '..'));
+  let repo = await NodeGit.Repository.open(resolve(__dirname, '..'));
 
   let wipResult = await wip({
     repo,

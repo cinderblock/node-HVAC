@@ -1,9 +1,11 @@
 #!/usr/bin/env node
-const path = require('path');
+import { resolve } from 'path';
 
-const SSH = require('node-ssh');
+import SSH from 'node-ssh';
 
-const { remote } = require('./config.js');
+import config from './config';
+
+const { remote } = config;
 
 const args = ['daemon', '--non-interactive', ...process.argv.slice(2)];
 // console.log('args:', args);
@@ -11,7 +13,7 @@ const args = ['daemon', '--non-interactive', ...process.argv.slice(2)];
 const files = ['daemon/package.json', 'daemon/yarn.lock'];
 
 function localFile(name) {
-  return path.resolve(__dirname, '..', name);
+  return resolve(__dirname, '..', name);
 }
 
 function remoteFile(name) {

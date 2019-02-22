@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   remote: {
     user: 'user',
     host: 'some.host',
