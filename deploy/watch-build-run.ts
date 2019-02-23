@@ -3,7 +3,7 @@ import SSH2Promise = require('ssh2-promise');
 import ts = require('typescript');
 
 import config from './config';
-import { watch, WriteStream } from 'fs';
+import { watch } from 'fs';
 
 const formatHost: ts.FormatDiagnosticsHost = {
   getCanonicalFileName: path => path,
