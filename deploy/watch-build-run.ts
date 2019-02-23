@@ -114,7 +114,7 @@ export default async function watchBuildTransferRun(options: Options) {
 
   const configPath = ts.findConfigFile(options.local.path, ts.sys.fileExists, 'tsconfig.json');
   if (!configPath) {
-    throw new Error("Could not find a valid 'tsconfig.json'.");
+    throw new Error('Could not find a valid tsconfig.json.');
   }
 
   options.remote.connect.reconnectDelay = options.remote.connect.reconnectDelay || 250;
