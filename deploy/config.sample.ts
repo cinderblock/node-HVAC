@@ -3,7 +3,7 @@ export default {
     connect: {
       username: 'user',
       host: 'some.host',
-      agent: 'pagent',
+      agent: 'pageant',
     },
     dir: 'deploy',
   },
