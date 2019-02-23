@@ -206,26 +206,81 @@ export default async function watchBuildTransferRun(options: Options) {
 
   async function killRunning() {}
 
+
+  type ExecOptions = {
+    // An environment to use for the execution of the command.
+    env?: { [x: string]: string };
+    // Set to true to allocate a pseudo-tty with defaults, or an object containing specific pseudo-tty settings (see 'Pseudo-TTY settings'). Setting up a pseudo-tty can be useful when working with remote processes that expect input from an actual terminal (e.g. sudo's password prompt).
+    pty?:
+      | true
+      | {
+          // Number of rows. Default: 24
+          rows?: number;
+          // Number of columns. Default: 80
+          cols?: number;
+          // Height in pixels. Default: 480
+          height?: number;
+          // Width in pixels. Default: 640
+          width?: number;
+          // The value to use for $TERM. Default: 'vt100'
+          term?: string;
+        };
+    // Set to true to use defaults below, set to a number to specify a specific screen number, or an object with the following valid properties:
+    x11?:
+      | true
+      | {
+          // Allow just a single connection? Default: false
+          single?: boolean;
+          // Screen number to use Default: 0
+          screen?: number;
+          // The authentication protocol name. Default: 'MIT-MAGIC-COOKIE-1'
+          protocol?: string;
+          // The authentication cookie. Can be a hex string or a Buffer containing the raw cookie value (which will be converted to a hex string). Default: (random 16 byte value)
+          cookie?: string | Buffer;
+        };
+  };
+
   async function remoteExecNode() {
     console.log('Running');
+
+    const options: ExecOptions = {};
+
+    // TODO: Run in options.remote.dir directory!
+
     try {
-      return await ssh.exec('node', ['.'], {
-        cwd: options.remote.dir,
-        onStdout: chunk => process.stdout.write(chunk.toString('utf8')),
-        onStderr: chunk => process.stderr.write(chunk.toString('utf8')),
+      running = await ssh.spawn('node', ['.'], options);
+
+      running.on('data', (data: Buffer) => {
+        console.log('Node:', data.toString());
       });
+
+      running.stderr.on('data', (data: Buffer) => {
+        console.log('Node stderr:', data.toString());
+      });
+
+      return running;
     } catch (e) {
       console.log('Error running remote node.', e.toString('uft8'));
     }
   }
 
   async function remoteExecYarn() {
+    const options: ExecOptions = {};
+
+    // TODO: Run in options.remote.dir directory!
+
     try {
-      return await ssh.exec('yarn', [], {
-        cwd: options.remote.dir,
-        onStdout: chunk => process.stdout.write(chunk.toString('utf8')),
-        onStderr: chunk => process.stderr.write(chunk.toString('utf8')),
+      const ret = await ssh.spawn('yarn', ['install', '--production', '--non-interactive'], options);
+
+      ret.on('data', (data: Buffer) => {
+        console.log('Yarn:', data.toString());
       });
+
+      ret.stderr.on('data', (data: Buffer) => {
+        console.log('Yarn stderr:', data.toString());
+      });
+
+      return ret;
     } catch (e) {
       console.log('Error running remote yarn.', e.toString('uft8'));
     }
