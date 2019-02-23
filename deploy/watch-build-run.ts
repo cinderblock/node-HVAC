@@ -15,7 +15,7 @@ type AuthMethod = 'none' | 'password' | 'publickey' | 'agent' | 'keyboard-intera
 
 export type Options = {
   remote: {
-    connect?: {
+    connect: {
       // Main options for SSH2
 
       // Hostname or IP address of the server. Default: 'localhost'
