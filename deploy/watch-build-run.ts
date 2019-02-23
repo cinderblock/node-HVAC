@@ -125,8 +125,6 @@ export default async function watchBuildTransferRun(options: Options) {
 
   let sftp = ssh.sftp();
 
-  const remotePath = options.remote.directory ? options.remote.directory + '/' : '';
-
   async function mkdir(dir: string) {
     await sftp.mkdir(dir).catch(async (e: Error) => {
       console.log('Directory already exists, probably.');
@@ -140,6 +138,7 @@ export default async function watchBuildTransferRun(options: Options) {
   await mkdir(options.remote.directory);
 
   async function updatePackageJson() {
+    const remotePath = options.remote.directory ? options.remote.directory + '/' : '';
     console.log('Updating package.json and yarn.lock');
 
     await Promise.all([
@@ -287,18 +286,18 @@ export default async function watchBuildTransferRun(options: Options) {
   }
 
   async function remoteExecYarn() {
-    const options: ExecOptions = {};
+    const execOptions: ExecOptions = {};
 
     const args: string[] = [];
 
-    if (remotePath) args.push('--cwd', remotePath);
+    if (options.remote.directory) args.push('--cwd', options.remote.directory);
 
     args.push('install');
     args.push('--production');
     args.push('--non-interactive');
 
     try {
-      const yarn = await ssh.spawn('yarn', args, options);
+      const yarn = await ssh.spawn('yarn', args, execOptions);
 
       yarn.on('data', (data: Buffer) => {
         console.log('Yarn:', data.toString().trimRight());
