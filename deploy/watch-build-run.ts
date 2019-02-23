@@ -121,7 +121,7 @@ export default async function watchBuildTransferRun(options: Options) {
   let sftp = ssh.sftp();
 
   async function mkdir(dir: string) {
-    await sftp.mkdir(dir).catch(async e => {
+    await sftp.mkdir(dir).catch(async (e: Error) => {
       console.log('Directory already exists?');
 
       await ssh.connect();
