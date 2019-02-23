@@ -123,14 +123,15 @@ export default async function watchBuildTransferRun(options: Options) {
     throw 'Connection failed';
   });
 
-  let sftp = ssh.sftp();
+  const sftp = ssh.sftp();
 
   async function mkdir(dir: string) {
     await sftp.mkdir(dir).catch(async (e: Error) => {
       console.log('Directory already exists, probably.');
 
-      await ssh.connect();
-      sftp = ssh.sftp();
+      // TODO: How to recover...
+      ssh.close();
+      throw 'Directory exists...';
     });
   }
 
