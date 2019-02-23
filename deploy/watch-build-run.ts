@@ -260,7 +260,7 @@ export default async function watchBuildTransferRun(options: Options) {
 
       return running;
     } catch (e) {
-      console.log('Error running remote node.', e.toString('uft8'));
+      console.log('Error running remote node.', e.toString('utf8'));
     }
   }
 
@@ -282,7 +282,7 @@ export default async function watchBuildTransferRun(options: Options) {
 
       return ret;
     } catch (e) {
-      console.log('Error running remote yarn.', e.toString('uft8'));
+      console.log('Error running remote yarn.', e.toString('utf8'));
     }
   }
 
