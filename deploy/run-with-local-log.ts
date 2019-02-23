@@ -9,7 +9,7 @@ import config from './config';
 
 const { remote } = config;
 
-const remoteURL = `${remote.connection.username}@${remote.connection.host}:${remote.dir}`;
+const remoteURL = `${remote.connect.username}@${remote.connect.host}:${remote.dir}`;
 
 async function gitPush() {
   let repo = await NodeGit.Repository.open(resolve(__dirname, '..'));

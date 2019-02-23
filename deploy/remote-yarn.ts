@@ -24,7 +24,7 @@ async function remoteYarn() {
   try {
     const ssh = new SSH();
 
-    let sshConnection = await ssh.connect(remote.connection);
+    let sshConnection = await ssh.connect(remote.connect);
 
     try {
       // TODO: Lock file to prevent multiple people running this at once

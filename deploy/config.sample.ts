@@ -1,6 +1,6 @@
 export default {
   remote: {
-    connection: {
+    connect: {
       username: 'user',
       host: 'some.host',
       agent: 'pagent',
