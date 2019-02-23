@@ -291,10 +291,16 @@ export default async function watchBuildTransferRun(options: Options) {
   async function remoteExecYarn() {
     const options: ExecOptions = {};
 
-    // TODO: Run in options.remote.dir directory!
+    const args: string[] = [];
+
+    if (remotePath) args.push('--cwd', remotePath);
+
+    args.push('install');
+    args.push('--production');
+    args.push('--non-interactive');
 
     try {
-      const yarn = await ssh.spawn('yarn', ['install', '--production', '--non-interactive'], options);
+      const yarn = await ssh.spawn('yarn', args, options);
 
       yarn.on('data', (data: Buffer) => {
         console.log('Yarn:', data.toString().trimRight());
