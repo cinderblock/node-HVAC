@@ -134,7 +134,11 @@ export default async function watchBuildTransferRun(options: Options) {
   async function updatePackageJson() {
     console.log('Updating package.json');
     console.log('Putting:', options.localPath + 'package.json', options.remote.dir + '/package.json');
-    await sftp.fastPut(options.localPath + 'package.json', options.remote.dir);
+    await sftp.fastPut(options.localPath + 'package.json', options.remote.dir, {
+      step(transferred: number, chunk: number, total: number) {
+        console.log('Step:', transferred, chunk, total);
+      },
+    });
     console.log('Updated package.json');
     await sftp.fastPut(options.localPath + 'yarn.lock', options.remote.dir + '/yarn.lock');
     console.log('Updated yarn.lock');
