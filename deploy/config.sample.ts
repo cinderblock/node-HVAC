@@ -1,8 +1,10 @@
 export default {
   remote: {
-    username: 'user',
-    host: 'some.host',
+    connection: {
+      username: 'user',
+      host: 'some.host',
+      agent: 'pagent',
+    },
     dir: 'deploy',
-    agent: 'pagent',
   },
 };
