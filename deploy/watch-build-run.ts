@@ -204,8 +204,25 @@ export default async function watchBuildTransferRun(options: Options) {
 
   let running;
 
-  async function killRunning() {}
+  async function killRunning() {
+    if (!running) return;
+    type Signal =
+      | 'ABRT'
+      | 'ALRM'
+      | 'FPE'
+      | 'HUP'
+      | 'ILL'
+      | 'INT'
+      | 'KILL'
+      | 'PIPE'
+      | 'QUIT'
+      | 'SEGV'
+      | 'TERM'
+      | 'USR1'
+      | 'USR2';
 
+    (running.signal as (sign: Signal) => void)('INT');
+  }
 
   type ExecOptions = {
     // An environment to use for the execution of the command.
