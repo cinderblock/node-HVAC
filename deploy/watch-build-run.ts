@@ -310,7 +310,7 @@ if (require.main === module) {
   watchBuildTransferRun(config).then(
     () => {},
     e => {
-      console.log('TL Error:', e);
+      console.log('Error:', e);
     }
   );
 }
