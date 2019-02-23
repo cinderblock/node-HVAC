@@ -111,6 +111,7 @@ export default async function watchBuildTransferRun(options: Options) {
   }
 
   options.remote.connect.reconnectDelay = options.remote.connect.reconnectDelay || 250;
+  options.remote.connect.reconnect = false;
 
   const ssh = new SSH2Promise(options.remote.connect);
 
