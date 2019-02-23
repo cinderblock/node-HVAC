@@ -294,17 +294,17 @@ export default async function watchBuildTransferRun(options: Options) {
     // TODO: Run in options.remote.dir directory!
 
     try {
-      const ret = await ssh.spawn('yarn', ['install', '--production', '--non-interactive'], options);
+      const yarn = await ssh.spawn('yarn', ['install', '--production', '--non-interactive'], options);
 
-      ret.on('data', (data: Buffer) => {
+      yarn.on('data', (data: Buffer) => {
         console.log('Yarn:', data.toString());
       });
 
-      ret.stderr.on('data', (data: Buffer) => {
+      yarn.stderr.on('data', (data: Buffer) => {
         console.log('Yarn stderr:', data.toString());
       });
 
-      return ret;
+      return new Promise(resolve => yarn.on('end', resolve));
     } catch (e) {
       console.log('Error running remote yarn.', e.toString('utf8'));
     }
