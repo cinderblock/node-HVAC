@@ -297,11 +297,11 @@ export default async function watchBuildTransferRun(options: Options) {
       const yarn = await ssh.spawn('yarn', ['install', '--production', '--non-interactive'], options);
 
       yarn.on('data', (data: Buffer) => {
-        console.log('Yarn:', data.toString());
+        console.log('Yarn:', data.toString().trimRight());
       });
 
       yarn.stderr.on('data', (data: Buffer) => {
-        console.log('Yarn stderr:', data.toString());
+        console.log('Yarn stderr:', data.toString().trimRight());
       });
 
       return new Promise(resolve => yarn.on('end', resolve));
