@@ -11,7 +11,7 @@
     "setup": "yarn install --non-interactive --silent --prod && yarn",
     "start": "ts-node main.ts"
   },
-  "main": "main.ts",
+  "main": "main.js",
   "dependencies": {
     "chalk": "^2.4.2",
     "server-starter": "^1.6.0",
