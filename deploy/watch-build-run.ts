@@ -2,8 +2,14 @@
 import SSH2Promise = require('ssh2-promise');
 import ts = require('typescript');
 
+import { Observable, Subscriber } from 'rxjs';
+import { auditTime, debounceTime, bufferWhen } from 'rxjs/operators';
 import config from './config';
 import { watch } from 'fs';
+import observeFileChange from './utils/observeFile';
+import { merge } from 'rxjs/observable/merge';
+import { defer } from 'rxjs/observable/defer';
+import { combineLatest } from 'rxjs/observable/combineLatest';
 
 const formatHost: ts.FormatDiagnosticsHost = {
   getCanonicalFileName: path => path,
@@ -136,78 +142,81 @@ export default async function watchBuildTransferRun(options: Options) {
   }
 
   // TODO: Only mkdir if it doesn't already exists. sftp can't handle it existing for some reason...
-  await mkdir(options.remote.directory);
+  // await mkdir(options.remote.directory);
 
-  async function updatePackageJson() {
+  async function updatePackages() {
+    // Stop running instance
+    await killRunning();
+
     const remotePath = options.remote.directory ? options.remote.directory + '/' : '';
     console.log('Updating package.json and yarn.lock');
 
     await Promise.all([
       sftp.fastPut(options.local.path + 'package.json', remotePath + 'package.json'),
       sftp.fastPut(options.local.path + 'yarn.lock', remotePath + 'yarn.lock'),
-    ]);
+    ]).catch(e => {
+      console.log('Error putting files:', e);
+    });
 
     console.log('Updated package.json and yarn.lock');
 
     await remoteExecYarn();
+
     console.log('Yarn ran');
   }
 
-  await updatePackageJson();
+  const packageUpdates = merge(
+    observeFileChange(options.local.path + 'package.json'),
+    observeFileChange(options.local.path + 'yarn.lock')
+  )
+    // Writes to these files come in bursts. We only need to react after the burst is done.
+    .pipe(debounceTime(200))
+    // Copy the files and run yarn over ssh. Don't re-run until that is complete.
+    .pipe(bufferWhen(() => defer(updatePackages)));
 
-  watch(options.local.path + 'package.json')
-    .on('change', async (eventType: 'change' | 'rename', filename: string) => {
-      if (eventType == 'change') updatePackageJson();
-      console.log('Change event:', eventType, filename);
-    })
-    .on('error', err => {
-      // TODO: Error handling
-      console.log('Watch error');
-    })
-    .on('close', () => {
-      // TODO: Error handling
-      console.log('Watch close');
-    });
+  const buildAndPush = new Observable<void>(observable => {
+    const host = ts.createWatchCompilerHost(
+      configPath,
+      { outDir: options.remote.directory || '' },
+      ts.sys,
+      ts.createEmitAndSemanticDiagnosticsBuilderProgram,
+      reportDiagnostic,
+      reportWatchStatusChanged
+    );
 
-  const host = ts.createWatchCompilerHost(
-    configPath,
-    { outDir: options.remote.directory || '' },
-    ts.sys,
-    ts.createEmitAndSemanticDiagnosticsBuilderProgram,
-    reportDiagnostic,
-    reportWatchStatusChanged
-  );
+    const origCreateProgram = host.createProgram;
+    host.createProgram = (rootNames: ReadonlyArray<string>, options, host, oldProgram) => {
+      console.log('Starting new compilation');
+      // Might be nice to wait for it to finish... Not sure how.
+      killRunning();
+      return origCreateProgram(rootNames, options, host, oldProgram);
+    };
 
-  const origCreateProgram = host.createProgram;
-  host.createProgram = (rootNames: ReadonlyArray<string>, options, host, oldProgram) => {
-    console.log('Starting new compilation');
-    killRunning();
-    return origCreateProgram(rootNames, options, host, oldProgram);
-  };
+    const origPostProgramCreate = host.afterProgramCreate;
+    host.afterProgramCreate = async program => {
+      console.log('** We finished making the program! **');
 
-  const origPostProgramCreate = host.afterProgramCreate;
-  host.afterProgramCreate = async program => {
-    console.log('** We finished making the program! **');
+      const files: Promise<void>[] = [];
 
-    const files: [string, string][] = [];
+      program.emit(undefined, (filename, source) => {
+        files.push(
+          // TODO: Ensure directory exists...
+          sftp.writeFile(filename, source, {}).catch(e => {
+            console.log('Error writing compiled file:', filename, e);
+          })
+        );
+      });
 
-    program.emit(undefined, (filename, source) => {
-      files.push([filename, source]);
-    });
+      await Promise.all(files);
 
-    for (let i = 0; i < files.length; i++) {
-      const [filename, source] = files[i];
-      await sftp.writeFile(filename, source, {});
-      console.log('Wrote:', filename);
-    }
+      observable.next();
 
-    remoteExecNode();
+      // TODO: Check if there is something that this was doing that we needed.
+      // origPostProgramCreate(program);
+    };
 
-    // TODO: Check if there is something that this was doing that we needed.
-    // origPostProgramCreate(program);
-  };
-
-  ts.createWatchProgram(host);
+    ts.createWatchProgram(host);
+  });
 
   let running;
 
@@ -232,6 +241,13 @@ export default async function watchBuildTransferRun(options: Options) {
     const signal: Signal = 'INT';
 
     running.signal(signal);
+
+    return new Promise<void>(resolve =>
+      running.on('close', () => {
+        running = false;
+        resolve();
+      })
+    );
   }
 
   type ExecOptions = {
@@ -317,7 +333,15 @@ export default async function watchBuildTransferRun(options: Options) {
     }
   }
 
-  ssh.close();
+  combineLatest(packageUpdates, buildAndPush)
+    .pipe(debounceTime(200))
+    .subscribe(
+      remoteExecNode,
+      e => {
+        console.log('Error in Observable:', e);
+      },
+      ssh.close
+    );
 }
 
 function reportDiagnostic(diagnostic: ts.Diagnostic) {
