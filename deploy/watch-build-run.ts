@@ -114,7 +114,9 @@ export default async function watchBuildTransferRun(options: Options) {
 
   const ssh = new SSH2Promise(options.remote.connect);
 
-  await ssh.connect();
+  await ssh.connect().catch((e: Error) => {
+    throw 'Connection failed';
+  });
 
   let sftp = ssh.sftp();
 
