@@ -5,6 +5,6 @@ export default {
       host: 'some.host',
       agent: 'pageant',
     },
-    dir: 'deploy',
+    directory: 'deploy',
   },
 };

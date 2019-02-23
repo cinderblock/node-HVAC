@@ -97,15 +97,16 @@ export type Options = {
       // Delay after which reconnect should be done. Default: '5000'.
       reconnectDelay?: number;
     };
-    dir: string;
+    directory?: string;
   };
-  localPath?: string;
+  local?: { path?: string };
 };
 
 export default async function watchBuildTransferRun(options: Options) {
-  options.localPath = options.localPath || '../daemon/';
+  options.local = options.local || {};
+  options.local.path = options.local.path || '../daemon/';
 
-  const configPath = ts.findConfigFile(options.localPath, ts.sys.fileExists, 'tsconfig.json');
+  const configPath = ts.findConfigFile(options.local.path, ts.sys.fileExists, 'tsconfig.json');
   if (!configPath) {
     throw new Error("Could not find a valid 'tsconfig.json'.");
   }
@@ -124,6 +125,8 @@ export default async function watchBuildTransferRun(options: Options) {
 
   let sftp = ssh.sftp();
 
+  const remotePath = options.remote.directory ? options.remote.directory + '/' : '';
+
   async function mkdir(dir: string) {
     await sftp.mkdir(dir).catch(async (e: Error) => {
       console.log('Directory already exists, probably.');
@@ -133,26 +136,26 @@ export default async function watchBuildTransferRun(options: Options) {
     });
   }
 
-  // mkdir(options.remote.dir);
+  // TODO: Only mkdir if it doesn't already exists. sftp can't handle it existing for some reason...
+  await mkdir(options.remote.directory);
 
   async function updatePackageJson() {
-    console.log('Updating package.json');
-    console.log('Putting:', options.localPath + 'package.json', options.remote.dir + '/package.json');
-    await sftp.fastPut(options.localPath + 'package.json', options.remote.dir, {
-      step(transferred: number, chunk: number, total: number) {
-        console.log('Step:', transferred, chunk, total);
-      },
-    });
-    console.log('Updated package.json');
-    await sftp.fastPut(options.localPath + 'yarn.lock', options.remote.dir + '/yarn.lock');
-    console.log('Updated yarn.lock');
+    console.log('Updating package.json and yarn.lock');
+
+    await Promise.all([
+      sftp.fastPut(options.local.path + 'package.json', remotePath + 'package.json'),
+      sftp.fastPut(options.local.path + 'yarn.lock', remotePath + 'yarn.lock'),
+    ]);
+
+    console.log('Updated package.json and yarn.lock');
+
     await remoteExecYarn();
     console.log('Yarn ran');
   }
 
   await updatePackageJson();
 
-  watch(options.localPath + 'package.json')
+  watch(options.local.path + 'package.json')
     .on('change', async (eventType: 'change' | 'rename', filename: string) => {
       if (eventType == 'change') updatePackageJson();
       console.log('Change event:', eventType, filename);
@@ -168,7 +171,7 @@ export default async function watchBuildTransferRun(options: Options) {
 
   const host = ts.createWatchCompilerHost(
     configPath,
-    { outDir: options.remote.dir },
+    { outDir: options.remote.directory || '' },
     ts.sys,
     ts.createEmitAndSemanticDiagnosticsBuilderProgram,
     reportDiagnostic,
