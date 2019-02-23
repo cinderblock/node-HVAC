@@ -267,12 +267,10 @@ export default async function watchBuildTransferRun(options: Options) {
   async function remoteExecNode() {
     console.log('Running');
 
-    const options: ExecOptions = {};
-
-    // TODO: Run in options.remote.dir directory!
+    const execOptions: ExecOptions = {};
 
     try {
-      running = await ssh.spawn('node', ['.'], options);
+      running = await ssh.spawn('node', [options.remote.directory || '.'], execOptions);
 
       running.on('data', (data: Buffer) => {
         console.log('Node:', data.toString());
