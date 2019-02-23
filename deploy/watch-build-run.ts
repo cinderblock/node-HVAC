@@ -228,7 +228,9 @@ export default async function watchBuildTransferRun(options: Options) {
       | 'USR1'
       | 'USR2';
 
-    (running.signal as (sign: Signal) => void)('INT');
+    const signal: Signal = 'INT';
+
+    running.signal(signal);
   }
 
   type ExecOptions = {
