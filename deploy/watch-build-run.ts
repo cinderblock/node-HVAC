@@ -213,6 +213,7 @@ export default async function watchBuildTransferRun(options: Options) {
 
   async function killRunning() {
     if (!running) return;
+
     type Signal =
       | 'ABRT'
       | 'ALRM'
