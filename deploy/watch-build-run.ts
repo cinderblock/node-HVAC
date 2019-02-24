@@ -6,8 +6,9 @@ import { debounceTime, map, filter, mergeMap } from 'rxjs/operators';
 
 import observeFileChange from './utils/observeFile';
 import config from './config';
-import { ConnectOptions, ExecOptions } from './utils/ssh2.types';
 import forEachPromise from './utils/forEachPromise';
+import { ClientChannel, ExecOptions } from 'ssh2';
+import { ConnectOptions } from './utils/ssh2.types';
 
 const formatHost: ts.FormatDiagnosticsHost = {
   getCanonicalFileName: path => path,
@@ -154,8 +155,8 @@ export default async function watchBuildTransferRun(options: Options) {
     .pipe(map(doneBuilding))
     .pipe(map(() => console.log('Sources updated')));
 
-  let running;
-  let spawn;
+  let running: Promise<void>;
+  let spawn: ClientChannel;
 
   async function killRunning() {
     type Signal =
@@ -227,7 +228,7 @@ export default async function watchBuildTransferRun(options: Options) {
     args.push('--non-interactive');
 
     try {
-      const yarn = await ssh.spawn('yarn', args, execOptions);
+      const yarn: ClientChannel = await ssh.spawn('yarn', args, execOptions);
 
       yarn.on('data', (data: Buffer) => {
         console.log('Yarn:', data.toString().trimRight());

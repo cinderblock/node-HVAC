@@ -22,12 +22,20 @@
   dependencies:
     "@types/node" "*"
 
-"@types/ssh2-streams@^0.1.5":
+"@types/ssh2-streams@*", "@types/ssh2-streams@^0.1.5":
   version "0.1.5"
   resolved "https://registry.yarnpkg.com/@types/ssh2-streams/-/ssh2-streams-0.1.5.tgz#632db04c0f483ba3bdb1c2f330688bc9f5ccfeb2"
   integrity sha512-1WYzERkyJHjz24wQfLpJ75Si1c2LRX0n4PgTW1qGve3IsAhcnaj7bHs9lNPaNdey5EcVsZPs38M8AHo9jxXSFA==
   dependencies:
     "@types/node" "*"
+
+"@types/ssh2@^0.5.38":
+  version "0.5.38"
+  resolved "https://registry.yarnpkg.com/@types/ssh2/-/ssh2-0.5.38.tgz#71f7c8f1d0636663158561af103c385ad439c7bc"
+  integrity sha512-rMnCnd0VIEUpCD1O5V50L1I8asHMBHZUYBnG6wlim1SdUrKUn60yiNpW5BnnT6QkTExaUXVrM8N883ZPPEPtsg==
+  dependencies:
+    "@types/node" "*"
+    "@types/ssh2-streams" "*"
 
 abbrev@1:
   version "1.1.1"
