@@ -359,6 +359,7 @@ export default async function watchBuildTransferRun(options: Options) {
       remoteExecNode,
       e => {
         console.log('Error in Observable:', e);
+        ssh.close();
       },
       ssh.close
     );
