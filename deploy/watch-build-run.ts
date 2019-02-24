@@ -1,15 +1,11 @@
 #!/usr/bin/env node
 import SSH2Promise = require('ssh2-promise');
 import ts = require('typescript');
+import { Observable, combineLatest, merge } from 'rxjs';
+import { debounceTime, map, filter, mergeMap } from 'rxjs/operators';
 
-import { Observable, Subscriber } from 'rxjs';
-import { auditTime, debounceTime, bufferWhen } from 'rxjs/operators';
-import config from './config';
-import { watch } from 'fs';
 import observeFileChange from './utils/observeFile';
-import { merge } from 'rxjs/observable/merge';
-import { defer } from 'rxjs/observable/defer';
-import { combineLatest } from 'rxjs/observable/combineLatest';
+import config from './config';
 
 const formatHost: ts.FormatDiagnosticsHost = {
   getCanonicalFileName: path => path,
@@ -145,9 +141,6 @@ export default async function watchBuildTransferRun(options: Options) {
   // await mkdir(options.remote.directory);
 
   async function updatePackages() {
-    // Stop running instance
-    await killRunning();
-
     const remotePath = options.remote.directory ? options.remote.directory + '/' : '';
     console.log('Updating package.json and yarn.lock');
 
@@ -165,14 +158,30 @@ export default async function watchBuildTransferRun(options: Options) {
     console.log('Yarn ran');
   }
 
+  let buildingCount = 0;
+
+  function markBuilding() {
+    buildingCount++;
+  }
+
+  function doneBuilding() {
+    buildingCount--;
+  }
+
   const packageUpdates = merge(
     observeFileChange(options.local.path + 'package.json'),
     observeFileChange(options.local.path + 'yarn.lock')
   )
     // Writes to these files come in bursts. We only need to react after the burst is done.
     .pipe(debounceTime(200))
+    // Mark that we're building and shouldn't start a run
+    .pipe(map(markBuilding))
+    // Kill running instance (and wait for it to finish cleanly)
+    .pipe(mergeMap(killRunning))
     // Copy the files and run yarn over ssh. Don't re-run until that is complete.
-    .pipe(bufferWhen(() => defer(updatePackages)));
+    .pipe(mergeMap(updatePackages))
+    .pipe(map(doneBuilding))
+    .pipe(map(() => console.log('Packages updated')));
 
   const buildAndPush = new Observable<void>(observable => {
     const host = ts.createWatchCompilerHost(
@@ -187,6 +196,7 @@ export default async function watchBuildTransferRun(options: Options) {
     const origCreateProgram = host.createProgram;
     host.createProgram = (rootNames: ReadonlyArray<string>, options, host, oldProgram) => {
       console.log('Starting new compilation');
+      markBuilding();
       // Might be nice to wait for it to finish... Not sure how.
       killRunning();
       return origCreateProgram(rootNames, options, host, oldProgram);
@@ -216,13 +226,14 @@ export default async function watchBuildTransferRun(options: Options) {
     };
 
     ts.createWatchProgram(host);
-  });
+  })
+    .pipe(map(doneBuilding))
+    .pipe(map(() => console.log('Sources updated')));
 
   let running;
+  let spawn;
 
   async function killRunning() {
-    if (!running) return;
-
     type Signal =
       | 'ABRT'
       | 'ALRM'
@@ -240,14 +251,14 @@ export default async function watchBuildTransferRun(options: Options) {
 
     const signal: Signal = 'INT';
 
-    running.signal(signal);
+    if (spawn && running) {
+      console.log('Signaling');
+      // TODO: Test this...
+      spawn.signal(signal);
+      spawn = undefined;
+    }
 
-    return new Promise<void>(resolve =>
-      running.on('close', () => {
-        running = false;
-        resolve();
-      })
-    );
+    return running;
   }
 
   type ExecOptions = {
@@ -286,20 +297,28 @@ export default async function watchBuildTransferRun(options: Options) {
   async function remoteExecNode() {
     console.log('Running');
 
+    // This means we messed up...
+    if (running) throw 'Already running!';
+
     const execOptions: ExecOptions = {};
 
     try {
-      running = await ssh.spawn('node', [options.remote.directory || '.'], execOptions);
+      spawn = await ssh.spawn('node', [options.remote.directory || '.'], execOptions);
 
-      running.on('data', (data: Buffer) => {
-        console.log('Node:', data.toString());
+      spawn.on('data', (data: Buffer) => {
+        console.log('Node:', data.toString().trimRight());
       });
 
-      running.stderr.on('data', (data: Buffer) => {
-        console.log('Node stderr:', data.toString());
+      spawn.stderr.on('data', (data: Buffer) => {
+        console.log('Node stderr:', data.toString().trimRight());
       });
 
-      return running;
+      running = new Promise(resolve => {
+        spawn.on('close', () => {
+          running = undefined;
+          resolve();
+        });
+      });
     } catch (e) {
       console.log('Error running remote node.', e.toString('utf8'));
     }
@@ -334,7 +353,8 @@ export default async function watchBuildTransferRun(options: Options) {
   }
 
   combineLatest(packageUpdates, buildAndPush)
-    .pipe(debounceTime(200))
+    // .pipe(map(() => console.log('Build count:', buildingCount)))
+    .pipe(filter(() => buildingCount == 0))
     .subscribe(
       remoteExecNode,
       e => {
