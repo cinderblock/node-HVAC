@@ -378,7 +378,7 @@ function reportDiagnostic(diagnostic: ts.Diagnostic) {
  * This is mainly for messages like "Starting compilation" or "Compilation completed".
  */
 function reportWatchStatusChanged(diagnostic: ts.Diagnostic) {
-  console.info(ts.formatDiagnostic(diagnostic, formatHost));
+  console.info('TypeScript:', ts.formatDiagnostic(diagnostic, formatHost).trimRight());
 }
 
 if (require.main === module) {
