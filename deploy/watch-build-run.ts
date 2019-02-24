@@ -7,6 +7,7 @@ import { debounceTime, map, filter, mergeMap } from 'rxjs/operators';
 import observeFileChange from './utils/observeFile';
 import config from './config';
 import { ConnectOptions, ExecOptions } from './utils/ssh2.types';
+import forEachPromise from './utils/forEachPromise';
 
 const formatHost: ts.FormatDiagnosticsHost = {
   getCanonicalFileName: path => path,
@@ -45,18 +46,17 @@ export default async function watchBuildTransferRun(options: Options) {
 
   const sftp = ssh.sftp();
 
-  async function mkdir(dir: string) {
-    await sftp.mkdir(dir).catch(async (e: Error) => {
-      console.log('Directory already exists, probably.');
+  async function mkdir(dir: string, recursive = false) {
+    const execOptions: ExecOptions = {};
+    const args: string[] = [];
 
-      // TODO: How to recover...
-      ssh.close();
-      throw 'Directory exists...';
-    });
+    if (recursive) args.push('-p');
+    args.push(dir);
+
+    return ssh.exec('mkdir', args, execOptions);
   }
 
-  // TODO: Only mkdir if it doesn't already exists. sftp can't handle it existing for some reason...
-  // await mkdir(options.remote.directory);
+  if (options.remote.directory) await mkdir(options.remote.directory, true);
 
   async function updatePackages() {
     const remotePath = options.remote.directory ? options.remote.directory + '/' : '';
@@ -124,18 +124,22 @@ export default async function watchBuildTransferRun(options: Options) {
     host.afterProgramCreate = async program => {
       console.log('** We finished making the program! **');
 
-      const files: Promise<void>[] = [];
+      const data: [string, string][] = [];
 
-      program.emit(undefined, (filename, source) => {
-        files.push(
-          // TODO: Ensure directory exists...
-          sftp.writeFile(filename, source, {}).catch(e => {
-            console.log('Error writing compiled file:', filename, e);
-          })
-        );
-      });
+      program.emit(undefined, (filename, source) => data.push([filename, source]));
 
-      await Promise.all(files);
+      const dirs = data
+        // Strip filenames
+        .map(([filename]) => filename.replace(/\/[^/]*$/, ''))
+        // non-empty and Unique
+        .filter((value, i, arr) => value && arr.indexOf(value) === i)
+        // Filter to only needed mkdirs, keep if we don't find any others that would make the current dir
+        .filter((value, i, arr) => !arr.find((other, j) => i !== j && other.startsWith(value)));
+
+      // Directory creation must be sequential
+      await forEachPromise(dirs, mkdir);
+
+      await Promise.all(data.map(([file, data]) => sftp.writeFile(file, data, {})));
 
       observable.next();
 
