@@ -4,6 +4,7 @@
   "scripts": {
     "checkSources": "tsc --noemit",
     "test": "ts-node test.ts",
+    "clean": "ts-node clean.ts",
     "setup": "yarn install --non-interactive --silent && yarn",
     "daemondebug": "ts-node ./run-with-local-log.ts",
     "daemon-dev": "ts-node ./watch-build-run.ts",
