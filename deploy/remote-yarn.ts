@@ -17,7 +17,7 @@ function localFile(name) {
 }
 
 function remoteFile(name) {
-  return remote.dir + '/' + name;
+  return remote.directory + '/' + name;
 }
 
 async function remoteYarn() {
@@ -34,7 +34,7 @@ async function remoteYarn() {
 
       // Run remote yarn
       const { code: exitCode, signal, stdout: result, stderr: err } = await sshConnection.exec('yarn', args, {
-        cwd: remote.dir,
+        cwd: remote.directory,
         onStdout: chunk => process.stdout.write(chunk.toString('utf8')),
         onStderr: chunk => process.stderr.write(chunk.toString('utf8')),
         stream: 'both',
