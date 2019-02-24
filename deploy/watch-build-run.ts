@@ -281,3 +281,7 @@ if (require.main === module) {
     }
   );
 }
+
+// TODO: Connect debugger/source maps to running node instance
+
+// TODO: Handle user input. forward to remote. What about exit signal?
