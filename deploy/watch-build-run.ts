@@ -197,6 +197,10 @@ export default async function watchBuildTransferRun(options: Options) {
     try {
       spawn = await ssh.spawn('node', [options.remote.directory || '.'], execOptions);
 
+      // Remove verboseness from ssh.spawn
+      spawn.removeAllListeners('finish');
+      spawn.removeAllListeners('close');
+
       spawn.on('data', (data: Buffer) => {
         console.log('Node:', data.toString().trimRight());
       });
@@ -229,6 +233,10 @@ export default async function watchBuildTransferRun(options: Options) {
 
     try {
       const yarn: ClientChannel = await ssh.spawn('yarn', args, execOptions);
+
+      // Remove verboseness from ssh.spawn
+      yarn.removeAllListeners('finish');
+      yarn.removeAllListeners('close');
 
       yarn.on('data', (data: Buffer) => {
         console.log('Yarn:', data.toString().trimRight());
