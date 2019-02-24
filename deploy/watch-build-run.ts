@@ -226,6 +226,8 @@ export default async function watchBuildTransferRun(options: Options) {
     };
 
     ts.createWatchProgram(host);
+
+    // TODO: return teardown logic
   })
     .pipe(map(doneBuilding))
     .pipe(map(() => console.log('Sources updated')));

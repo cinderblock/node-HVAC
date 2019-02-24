@@ -20,5 +20,7 @@ export default function observeFileChange(file: string, suppressInitial = false)
         // TODO: Error handling
         console.log('Watch close');
       });
+
+    // TODO: return teardown logic
   });
 }
