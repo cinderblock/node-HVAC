@@ -47,17 +47,13 @@ export default async function watchBuildTransferRun(options: Options) {
 
   const sftp = ssh.sftp();
 
-  async function mkdir(dir: string, recursive = false) {
+  async function mkdir(dir: string | string[]) {
     const execOptions: ExecOptions = {};
-    const args: string[] = [];
 
-    if (recursive) args.push('-p');
-    args.push(dir);
-
-    return ssh.exec('mkdir', args, execOptions);
+    return ssh.exec('mkdir', ['-p', ...(typeof dir === 'string' ? [dir] : dir)], execOptions);
   }
 
-  if (options.remote.directory) await mkdir(options.remote.directory, true);
+  if (options.remote.directory) await mkdir(options.remote.directory);
 
   async function updatePackages() {
     const remotePath = options.remote.directory ? options.remote.directory + '/' : '';
@@ -137,8 +133,7 @@ export default async function watchBuildTransferRun(options: Options) {
         // Filter to only needed mkdirs, keep if we don't find any others that would make the current dir
         .filter((value, i, arr) => !arr.find((other, j) => i !== j && other.startsWith(value)));
 
-      // Directory creation must be sequential
-      await forEachPromise(dirs, mkdir);
+      await mkdir(dirs);
 
       await Promise.all(data.map(([file, data]) => sftp.writeFile(file, data, {})));
 
