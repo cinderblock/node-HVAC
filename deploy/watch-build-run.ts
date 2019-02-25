@@ -278,12 +278,7 @@ function reportWatchStatusChanged(diagnostic: ts.Diagnostic) {
 }
 
 if (require.main === module) {
-  watchBuildTransferRun(config).then(
-    () => {},
-    e => {
-      console.log('Error:', e);
-    }
-  );
+  watchBuildTransferRun(config).then(null, e => console.log('Error:', e));
 }
 
 // TODO: Connect debugger/source maps to running node instance
