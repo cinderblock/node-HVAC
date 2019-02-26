@@ -9,6 +9,8 @@ import config from './config';
 import forEachPromise from './utils/forEachPromise';
 import { ClientChannel, ExecOptions } from 'ssh2';
 import { ConnectOptions } from './utils/ssh2.types';
+import * as debug from './utils/debug';
+import chalk from 'chalk';
 
 const formatHost: ts.FormatDiagnosticsHost = {
   getCanonicalFileName: path => path,
@@ -36,12 +38,12 @@ export default async function watchBuildTransferRun(options: Options) {
   options.remote.connect.reconnectDelay = options.remote.connect.reconnectDelay || 250;
   options.remote.connect.reconnect = false;
 
-  // options.remote.connect.debug = msg => console.log('SSH DEBUG:', msg);
+  // options.remote.connect.debug = msg => debug.info('SSH DEBUG:', msg);
 
   const ssh = new SSH2Promise(options.remote.connect);
 
   await ssh.connect().catch((e: Error) => {
-    console.log(e);
+    debug.error(e.name, e);
     throw 'Connection failed';
   });
 
@@ -57,20 +59,20 @@ export default async function watchBuildTransferRun(options: Options) {
 
   async function updatePackages() {
     const remotePath = options.remote.directory ? options.remote.directory + '/' : '';
-    console.log('Updating package.json and yarn.lock');
+    debug.info('Updating package.json and yarn.lock');
 
     await Promise.all([
       sftp.fastPut(options.local.path + 'package.json', remotePath + 'package.json'),
       sftp.fastPut(options.local.path + 'yarn.lock', remotePath + 'yarn.lock'),
-    ]).catch(e => {
-      console.log('Error putting files:', e);
+    ]).catch((e: Error) => {
+      debug.error(e.name, 'Failed to put files', e);
     });
 
-    console.log('Updated package.json and yarn.lock');
+    debug.info('Updated package.json and yarn.lock');
 
     await remoteExecYarn();
 
-    console.log('Yarn ran');
+    debug.info('Yarn ran');
   }
 
   let buildingCount = 0;
@@ -96,7 +98,7 @@ export default async function watchBuildTransferRun(options: Options) {
     // Copy the files and run yarn over ssh. Don't re-run until that is complete.
     .pipe(mergeMap(updatePackages))
     .pipe(map(doneBuilding))
-    .pipe(map(() => console.log('Packages updated')));
+    .pipe(map(() => debug.green('Packages updated')));
 
   const buildAndPush = new Observable<void>(observable => {
     const host = ts.createWatchCompilerHost(
@@ -110,7 +112,7 @@ export default async function watchBuildTransferRun(options: Options) {
 
     const origCreateProgram = host.createProgram;
     host.createProgram = (rootNames: ReadonlyArray<string>, options, host, oldProgram) => {
-      console.log('Starting new compilation');
+      debug.cyan('Starting new compilation');
       markBuilding();
       // Might be nice to wait for it to finish... Not sure how.
       killRunning();
@@ -119,7 +121,7 @@ export default async function watchBuildTransferRun(options: Options) {
 
     const origPostProgramCreate = host.afterProgramCreate;
     host.afterProgramCreate = async program => {
-      console.log('** We finished making the program! **');
+      debug.magenta('Finished compilations');
 
       const data: [string, string][] = [];
 
@@ -148,7 +150,7 @@ export default async function watchBuildTransferRun(options: Options) {
     // TODO: return teardown logic
   })
     .pipe(map(doneBuilding))
-    .pipe(map(() => console.log('Sources updated')));
+    .pipe(map(() => debug.green('Sources updated')));
 
   let running: Promise<void>;
   let spawn: ClientChannel;
@@ -172,7 +174,7 @@ export default async function watchBuildTransferRun(options: Options) {
     const signal: Signal = 'INT';
 
     if (spawn && running) {
-      console.log('Signaling');
+      debug.grey('Signaling');
       // TODO: Test this...
       spawn.signal(signal);
       spawn = undefined;
@@ -181,8 +183,22 @@ export default async function watchBuildTransferRun(options: Options) {
     return running;
   }
 
+  function remoteDataPrinter(process: string, stream: 'stderr' | 'stdout') {
+    const log = debug.makeVariableLog({ colors: [chalk.grey, chalk.dim, chalk.yellow], modulo: 0 }, 'Remote:');
+
+    return (data: Buffer) => {
+      debug.info('incoming data:', data);
+      data
+        .toString()
+        .trimRight()
+        .split('\n')
+        .map(line => log(process, stream, line.trimRight()));
+      debug.info('Finished block');
+    };
+  }
+
   async function remoteExecNode() {
-    console.log('Running');
+    debug.yellow('Running');
 
     // This means we messed up...
     if (running) throw 'Already running!';
@@ -196,13 +212,8 @@ export default async function watchBuildTransferRun(options: Options) {
       spawn.removeAllListeners('finish');
       spawn.removeAllListeners('close');
 
-      spawn.on('data', (data: Buffer) => {
-        console.log('Node:', data.toString().trimRight());
-      });
-
-      spawn.stderr.on('data', (data: Buffer) => {
-        console.log('Node stderr:', data.toString().trimRight());
-      });
+      spawn.on('data', remoteDataPrinter('node', 'stdout'));
+      spawn.stderr.on('data', remoteDataPrinter('node', 'stderr'));
 
       running = new Promise(resolve => {
         spawn.on('close', () => {
@@ -211,7 +222,7 @@ export default async function watchBuildTransferRun(options: Options) {
         });
       });
     } catch (e) {
-      console.log('Error running remote node.', e.toString('utf8'));
+      debug.error('Error running remote node', e);
     }
   }
 
@@ -233,27 +244,22 @@ export default async function watchBuildTransferRun(options: Options) {
       yarn.removeAllListeners('finish');
       yarn.removeAllListeners('close');
 
-      yarn.on('data', (data: Buffer) => {
-        console.log('Yarn:', data.toString().trimRight());
-      });
-
-      yarn.stderr.on('data', (data: Buffer) => {
-        console.log('Yarn stderr:', data.toString().trimRight());
-      });
+      yarn.on('data', remoteDataPrinter('yarn', 'stdout'));
+      yarn.stderr.on('data', remoteDataPrinter('yarn', 'stderr'));
 
       return new Promise(resolve => yarn.on('end', resolve));
     } catch (e) {
-      console.log('Error running remote yarn.', e.toString('utf8'));
+      debug.error('Error running remote yarn', e);
     }
   }
 
   combineLatest(packageUpdates, buildAndPush)
-    // .pipe(map(() => console.log('Build count:', buildingCount)))
+    // .pipe(map(() => debug.info('Build count:', buildingCount)))
     .pipe(filter(() => buildingCount == 0))
     .subscribe(
       remoteExecNode,
       e => {
-        console.log('Error in Observable:', e);
+        debug.error('Error in Observable:', e);
         ssh.close();
       },
       ssh.close
@@ -261,7 +267,7 @@ export default async function watchBuildTransferRun(options: Options) {
 }
 
 function reportDiagnostic(diagnostic: ts.Diagnostic) {
-  console.error(
+  debug.error(
     'Error',
     diagnostic.code,
     ':',
@@ -274,11 +280,11 @@ function reportDiagnostic(diagnostic: ts.Diagnostic) {
  * This is mainly for messages like "Starting compilation" or "Compilation completed".
  */
 function reportWatchStatusChanged(diagnostic: ts.Diagnostic) {
-  console.info('TypeScript:', ts.formatDiagnostic(diagnostic, formatHost).trimRight());
+  debug.info('TypeScript:', ts.formatDiagnostic(diagnostic, formatHost).trimRight());
 }
 
 if (require.main === module) {
-  watchBuildTransferRun(config).then(null, e => console.log('Error:', e));
+  watchBuildTransferRun(config).then(null, e => debug.error('Main Failure:', e));
 }
 
 // TODO: Connect debugger/source maps to running node instance
