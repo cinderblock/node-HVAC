@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "build": "tsc",
+    "test": "tsc --noEmit",
     "shutdown": "sudo shutdown -h now",
     "reboot": "sudo reboot",
     "kill": "kill $(cat /tmp/daemon.pid 2> /dev/null) 2> /dev/null || :",
