@@ -138,6 +138,9 @@ export default async function watchBuildTransferRun(options: Options) {
 
       await Promise.all(data.map(([file, data]) => sftp.writeFile(file, data, {})));
 
+      // Wait for previous execution to get killed (if not already)
+      await running;
+
       observable.next();
 
       // TODO: Check if there is something that this was doing that we needed.
