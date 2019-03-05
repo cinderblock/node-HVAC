@@ -155,7 +155,7 @@ export default async function watchBuildTransferRun(options: Options) {
     .pipe(map(() => debug.green('Sources updated')));
 
   let running: Promise<void>;
-  let spawn: ClientChannel;
+  let spawn: ClientChannel & { kill: () => void };
 
   async function killRunning() {
     type Signal =
