@@ -6,7 +6,6 @@ import { debounceTime, map, filter, mergeMap } from 'rxjs/operators';
 
 import observeFileChange from './utils/observeFile';
 import config from './config';
-import forEachPromise from './utils/forEachPromise';
 import { ClientChannel, ExecOptions } from 'ssh2';
 import { ConnectOptions } from './utils/ssh2.types';
 import * as debug from './utils/debug';
