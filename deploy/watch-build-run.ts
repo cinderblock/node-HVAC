@@ -217,8 +217,9 @@ export default async function watchBuildTransferRun(options: Options) {
       spawn.on('data', remoteDataPrinter('node', 'stdout'));
       spawn.stderr.on('data', remoteDataPrinter('node', 'stderr'));
 
+      // TODO: Investigate if this *always* happens...
       running = new Promise(resolve => {
-        spawn.on('close', () => {
+        spawn.on('finish', () => {
           running = undefined;
           resolve();
         });
