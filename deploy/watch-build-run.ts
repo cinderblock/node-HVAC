@@ -210,6 +210,8 @@ export default async function watchBuildTransferRun(options: Options) {
     try {
       spawn = await ssh.spawn('node', [options.remote.directory || '.'], execOptions);
 
+      spawn.allowHalfOpen = false;
+
       // Remove verboseness from ssh.spawn
       spawn.removeAllListeners('finish');
       spawn.removeAllListeners('close');
