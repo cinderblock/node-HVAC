@@ -189,13 +189,13 @@ export default async function watchBuildTransferRun(options: Options) {
     const log = debug.makeVariableLog({ colors: [chalk.grey, chalk.dim, chalk.yellow], modulo: 0 }, 'Remote:');
 
     return (data: Buffer) => {
-      debug.info('incoming data:', data);
+      // debug.info('incoming data:', data);
       data
         .toString()
         .trimRight()
         .split('\n')
         .map(line => log(process, stream, line.trimRight()));
-      debug.info('Finished block');
+      // debug.info('Finished block');
     };
   }
 
