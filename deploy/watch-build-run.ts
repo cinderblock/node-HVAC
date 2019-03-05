@@ -216,7 +216,7 @@ export default async function watchBuildTransferRun(options: Options) {
       spawn.removeAllListeners('finish');
       spawn.removeAllListeners('close');
 
-      spawn.on('data', remoteDataPrinter('node', 'stdout'));
+      spawn.stdin.on('data', remoteDataPrinter('node', 'stdout'));
       spawn.stderr.on('data', remoteDataPrinter('node', 'stderr'));
 
       // TODO: Investigate if this *always* happens...
