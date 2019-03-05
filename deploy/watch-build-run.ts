@@ -178,7 +178,7 @@ export default async function watchBuildTransferRun(options: Options) {
     if (spawn && running) {
       debug.grey('Signaling');
       // TODO: Test this...
-      spawn.signal(signal);
+      spawn.kill();
       spawn = undefined;
     }
 
