@@ -186,7 +186,10 @@ export default async function watchBuildTransferRun(options: Options) {
   }
 
   function remoteDataPrinter(process: string, stream: 'stderr' | 'stdout') {
-    const log = debug.makeVariableLog({ colors: [chalk.grey, chalk.dim, chalk.yellow], modulo: 0 }, 'Remote:');
+    const log = debug.makeVariableLog(
+      { colors: [chalk.grey, chalk.grey, stream == 'stderr' ? chalk.magenta : chalk.yellow], modulo: 0 },
+      'Remote'
+    );
 
     return (data: Buffer) => {
       // debug.info('incoming data:', data);
