@@ -4,6 +4,7 @@
   "description": "Coupled daemon and UI with bundled deploy scripts",
   "scripts": {
     "dev": "yarn && yarn daemon && yarn deploy && yarn ui && install-vscode-extensions",
+    "quiet-install": "yarn --non-interactive --silent && yarn --non-interactive --silent daemon && yarn --non-interactive --silent deploy && yarn --non-interactive --silent ui",
     "upgradeAll": "yarn upgrade --latest && yarn daemon upgrade --latest && yarn deploy upgrade --latest && yarn ui upgrade --latest",
     "ui": "yarn --cwd ui",
     "daemon": "yarn --cwd daemon",
