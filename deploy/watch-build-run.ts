@@ -10,6 +10,7 @@ import { ClientChannel, ExecOptions } from 'ssh2';
 import { ConnectOptions } from './utils/ssh2.types';
 import * as debug from './utils/debug';
 import chalk from 'chalk';
+import { createServer, Socket } from 'net';
 
 const formatHost: ts.FormatDiagnosticsHost = {
   getCanonicalFileName: path => path,
@@ -33,6 +34,26 @@ export default async function watchBuildTransferRun(options: Options) {
   if (!configPath) {
     throw new Error('Could not find a valid tsconfig.json.');
   }
+
+  // TODO: Capture so that we can close gracefully
+  createServer(user => {
+    const client = new Socket();
+
+    client.connect(8000, options.remote.connect.host);
+
+    // 2-way pipe
+    user.pipe(client).pipe(user);
+
+    const colors = [chalk.magenta, chalk.cyan, chalk.yellow, chalk.grey, chalk.dim];
+
+    // Catch non-fatal errors
+    client.on('error', debug.makeVariableLog(colors, 'Proxy client error:'));
+    user.on('error', debug.makeVariableLog(colors, 'Proxy user error:'));
+
+    // TODO: Should we destroy on close?
+    // client.on('close', user.destroy);
+    // user.on('close', client.destroy);
+  }).listen(8000);
 
   options.remote.connect.reconnectDelay = options.remote.connect.reconnectDelay || 250;
   options.remote.connect.reconnect = false;
