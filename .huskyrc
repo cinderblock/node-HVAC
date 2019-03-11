@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "post-checkout": "npm run dev",
+    "post-merge": "npm run dev",
+    "post-rewrite": "npm run dev"
+  }
+}
