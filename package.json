@@ -4,7 +4,7 @@
   "description": "Coupled daemon and UI with bundled deploy scripts",
   "scripts": {
     "dev": "yarn && yarn daemon && yarn deploy && yarn ui && install-vscode-extensions",
-    "update-packages": "yarn --non-interactive --no-progress && yarn daemon --non-interactive --no-progress && yarn deploy --non-interactive --no-progress && yarn ui --non-interactive --no-progress",
+    "update-packages": "yarn --non-interactive --no-progress && yarn daemon --non-interactive --no-progress && yarn deploy --non-interactive --no-progress && yarn ui --non-interactive --no-progress && install-vscode-extensions",
     "upgrade-all": "yarn upgrade --latest && yarn daemon upgrade --latest && yarn deploy upgrade --latest && yarn ui upgrade --latest",
     "ui": "yarn --cwd ui",
     "daemon": "yarn --cwd daemon",
