@@ -43,6 +43,7 @@ All of these are run from the top level directory.
 | `yarn deploy development`      | Run local compiler in watch mode and **daemon** on remote with most recent local code |
 | `yarn ui add some-package`     | Add `some-package` to the ui                                                          |
 | `yarn ui upgrade`              | Upgrade ui packages to latest version                                                 |
+| `yarn upgrade-all`             | Upgrade all packages to latest versions                                               |
 | `yarn remote add some-package` | Add `some-package` to the daemon using the remote's yarn                              |
 | `yarn remote upgrade`          | Upgrade daemon packages to latest version using the remote's yarn                     |
 | `yarn remote kill`             | Kill the daemon on remote                                                             |
