@@ -1,7 +1,7 @@
 {
   "hooks": {
-    "post-checkout": "npm run quiet-install",
-    "post-merge": "npm run quiet-install",
-    "post-rewrite": "npm run quiet-install"
+    "post-checkout": "npm run update-packages",
+    "post-merge": "npm run update-packages",
+    "post-rewrite": "npm run update-packages"
   }
 }
