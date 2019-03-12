@@ -16,7 +16,7 @@ While easier if Yarn is installed globally, this works fine without it.
 # Installs yarn locally
 npm install
 # Setup development environment
-npm run dev
+npm run setup
 ```
 
 > You can run any command from the cheat sheet by replacing `yarn` with `npm run`.
@@ -38,7 +38,7 @@ All of these are run from the top level directory.
 
 | Command                        | Description                                                                           |
 | ------------------------------ | ------------------------------------------------------------------------------------- |
-| `yarn dev`                     | Setup your local machine for development                                              |
+| `yarn setup`                   | Setup your local machine for development                                              |
 | `yarn ui start`                | Run the web **ui** on your local machine (_dev mode_)                                 |
 | `yarn deploy development`      | Run local compiler in watch mode and **daemon** on remote with most recent local code |
 | `yarn ui add some-package`     | Add `some-package` to the ui                                                          |
