@@ -28,6 +28,10 @@ One for the web **UI** and one to actually do something persistent, the **daemon
 
 Most commands are intended to be run **on your development machine** and **not** directly on the remote system.
 
+### Suggested Environment
+
+Use Visual Studio Code.
+
 ## Cheat sheet
 
 All of these are run from the top level directory.
