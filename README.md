@@ -7,6 +7,15 @@ Skeleton for a sever/client JavaScript pair.
 ### Prerequisites
 
 [**Node 10+**](https://nodejs.org/en/download) must be installed on your development system.
+[**Yarn**](https://yarnpkg.com/lang/en/docs/install) is nice to have but **optional**.
+
+### Setup
+
+Install dependencies and setup development environment.
+
+```bash
+yarn setup
+```
 
 #### Non-global Yarn?
 
