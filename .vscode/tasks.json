@@ -20,7 +20,7 @@
       "label": "WebUI Dev Server",
       "type": "shell",
       "command": "yarn",
-      "args": ["ui", "setup", "start"],
+      "args": ["ui", "start"],
       "options": {
         "cwd": "${workspaceRoot}"
       },
