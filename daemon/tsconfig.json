@@ -5,6 +5,11 @@
     "lib": ["es2018"],
     "outDir": "build",
     "noImplicitAny": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "*": ["*", "node_modules/*", "node_modules/@types/*"]
+    }
   }
 }
