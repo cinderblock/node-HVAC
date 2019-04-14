@@ -7,7 +7,9 @@ import ServerStarter = require('server-starter');
 
 let clientID = 0;
 
-export default function setupClientSocket(eventHandlers: { [eventName: string]: (value: any, ID: number) => void }) {
+export default function setupClientSocket(eventHandlers: {
+  [eventName: string]: (value: any, clientID: number) => void;
+}) {
   // Helper function that is run every time a new webUI connects to us
   function setupClientSocket(sock: SocketIO.Socket) {
     const ID = clientID++;
@@ -23,13 +25,13 @@ export default function setupClientSocket(eventHandlers: { [eventName: string]: 
     // Don't listen to client events for a sec on startup.
     // Ignores events that were "sent" after server shutdown (and are therefore still pending)
     setTimeout(() => {
-      sock.on('event', ({ name, value, log }: { name: string; value: any; log: boolean }) => {
+      sock.on('event', ({ name, value, log }: { name: string; value: string | number | undefined; log: boolean }) => {
         if (log)
           console.log(
             chalk.grey('Event:'),
             chalk.cyan(name),
             '-',
-            chalk.magenta(value === undefined ? 'value undefined' : value)
+            chalk.magenta(value === undefined ? 'value undefined' : (value as string))
           );
         const handler = eventHandlers[name];
 
