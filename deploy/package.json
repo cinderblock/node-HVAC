@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@types/md5-file": "^4.0.0",
-    "@types/node": "^11.11.0",
+    "@types/node": "^11.13.4",
     "@types/nodegit": "^0.24.4",
     "@types/ssh2": "^0.5.38",
     "@types/ssh2-streams": "^0.1.6",
