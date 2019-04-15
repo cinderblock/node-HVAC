@@ -37,6 +37,13 @@ One for the web **UI** and one to actually do something persistent, the **daemon
 
 Most commands are intended to be run **on your development machine** and **not** directly on the remote system.
 
+#### Local Daemon Config
+
+If you'd like to run the daemon locally, there are a couple steps that need to be taken:
+
+1. Copy `daemon/config.sample.ts` to `daemon/config.ts`.
+2. Edit as desired.
+
 ### Suggested Environment
 
 Use Visual Studio Code.
