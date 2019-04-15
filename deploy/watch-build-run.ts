@@ -147,6 +147,17 @@ export default async function watchBuildTransferRun(options: Options) {
 
       program.emit(undefined, (filename, source) => data.push([filename, source]));
 
+      const remoteConfig = data.find(([f]) => f == remoteDaemonDir + '/config.remote.js');
+      const localConfig = data.findIndex(([f]) => f == remoteDaemonDir + '/config.js');
+      if (remoteConfig) {
+        if (localConfig > -1) {
+          debug.info('Removing config.js from copy list');
+          data.splice(localConfig, 1);
+        }
+        debug.info('Renaming config.remote.js in copy list');
+        remoteConfig[0] = remoteDaemonDir + '/config.js';
+      }
+
       const dirs = data
         // Strip filenames
         .map(([filename]) => filename.replace(/\/[^/]*$/, ''))
