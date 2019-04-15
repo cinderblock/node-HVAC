@@ -280,6 +280,7 @@ export default async function watchBuildTransferRun(options: Options) {
     args.push('--non-interactive');
     args.push('--network-concurrency');
     args.push('1');
+    args.push('--no-progress');
 
     try {
       const yarn: ClientChannel = await ssh.spawn('yarn', args, execOptions);
