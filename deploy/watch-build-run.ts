@@ -75,15 +75,15 @@ export default async function watchBuildTransferRun(options: Options) {
     return ssh.exec('mkdir', ['-p', ...(typeof dir === 'string' ? [dir] : dir)], execOptions);
   }
 
-  if (options.remote.directory) await mkdir(options.remote.directory);
+  const remoteDaemonDir = (options.remote.directory ? options.remote.directory + '/' : '') + 'daemon';
+  await mkdir(remoteDaemonDir);
 
   async function updatePackages() {
-    const remotePath = options.remote.directory ? options.remote.directory + '/' : '';
     debug.info('Updating package.json and yarn.lock');
 
     await Promise.all([
-      sftp.fastPut(options.local.path + 'package.json', remotePath + 'package.json'),
-      sftp.fastPut(options.local.path + 'yarn.lock', remotePath + 'yarn.lock'),
+      sftp.fastPut(options.local.path + 'package.json', remoteDaemonDir + '/package.json'),
+      sftp.fastPut(options.local.path + 'yarn.lock', remoteDaemonDir + '/yarn.lock'),
     ]).catch((e: Error) => {
       debug.error(e.name, 'Failed to put files', e);
     });
@@ -232,7 +232,9 @@ export default async function watchBuildTransferRun(options: Options) {
     const execOptions: ExecOptions = {};
 
     try {
-      spawn = await ssh.spawn('node', [options.remote.directory || '.'], execOptions);
+      const args = [remoteDaemonDir];
+      debug.variable('Spawning:', 'node', args, execOptions);
+      spawn = await ssh.spawn('node', args, execOptions);
 
       spawn.allowHalfOpen = false;
 
@@ -260,7 +262,7 @@ export default async function watchBuildTransferRun(options: Options) {
 
     const args: string[] = [];
 
-    if (options.remote.directory) args.push('--cwd', options.remote.directory);
+    args.push('--cwd', remoteDaemonDir);
 
     args.push('install');
     args.push('--production');
