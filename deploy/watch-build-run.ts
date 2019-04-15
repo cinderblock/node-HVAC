@@ -278,6 +278,8 @@ export default async function watchBuildTransferRun(options: Options) {
     args.push('install');
     args.push('--production');
     args.push('--non-interactive');
+    args.push('--network-concurrency');
+    args.push('1');
 
     try {
       const yarn: ClientChannel = await ssh.spawn('yarn', args, execOptions);
