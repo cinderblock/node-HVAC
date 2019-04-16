@@ -42,7 +42,7 @@ Most commands are intended to be run **on your development machine** and **not**
 If you'd like to run the daemon locally, there are a couple steps that need to be taken:
 
 1. Copy `daemon/config.sample.ts` to `daemon/config.ts`.
-2. Edit as desired.
+2. Edit as desired. Directories must exist.
 
 ### Suggested Environment
 
