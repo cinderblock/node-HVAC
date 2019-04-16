@@ -11,8 +11,8 @@ import { ConnectOptions } from './utils/ssh2.types';
 import * as debug from './utils/debug';
 import chalk from 'chalk';
 import { createServer, Socket } from 'net';
-import { readFileSync } from 'fs';
 import { join } from 'path';
+import { promises as fs } from 'fs';
 
 const formatHost: ts.FormatDiagnosticsHost = {
   getCanonicalFileName: path => path,
@@ -41,7 +41,16 @@ export default async function watchBuildTransferRun(options: Options) {
     if (process.platform === 'win32') options.remote.connect.agent = 'pageant';
     else if (process.env.SSH_AUTH_SOCK) options.remote.connect.agent = process.env.SSH_AUTH_SOCK;
     else if (process.env.HOME) {
-      options.remote.connect.privateKey = readFileSync(join(process.env.HOME, '.ssh', 'id_rsa'));
+      const keyFiles = ['id_rsa'];
+      for (const f in keyFiles) {
+        try {
+          options.remote.connect.privateKey = await fs.readFile(join(process.env.HOME, '.ssh', f));
+          break;
+        } catch (e) {}
+      }
+      if (!options.remote.connect.privateKey) {
+        // No private key found!
+      }
       // TODO: Handle other keys
     } else {
       // No auth defined???
