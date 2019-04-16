@@ -42,7 +42,7 @@ export default async function watchBuildTransferRun(options: Options) {
     if (process.platform === 'win32') options.remote.connect.agent = 'pageant';
     else if (process.env.SSH_AUTH_SOCK) options.remote.connect.agent = process.env.SSH_AUTH_SOCK;
     else if (process.env.HOME) {
-      const keyFiles = ['id_rsa'];
+      const keyFiles = ['id_rsa', 'id_dsa', 'id_ecdsa'];
       for (const f in keyFiles) {
         try {
           options.remote.connect.privateKey = await fs.readFile(join(process.env.HOME, '.ssh', f));
@@ -52,7 +52,6 @@ export default async function watchBuildTransferRun(options: Options) {
       if (!options.remote.connect.privateKey) {
         // No private key found!
       }
-      // TODO: Handle other keys
     } else {
       // No auth defined???
     }
