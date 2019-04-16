@@ -1,18 +1,19 @@
 #!/usr/bin/env node
+import { createServer, Socket } from 'net';
+import { join } from 'path';
+import { promises as fs } from 'fs';
+
 import SSH2Promise = require('ssh2-promise');
 import ts = require('typescript');
 import { Observable, combineLatest, merge } from 'rxjs';
 import { debounceTime, map, filter, mergeMap } from 'rxjs/operators';
+import { ClientChannel, ExecOptions } from 'ssh2';
+import chalk from 'chalk';
 
 import observeFileChange from './utils/observeFile';
 import config from './config';
-import { ClientChannel, ExecOptions } from 'ssh2';
 import { ConnectOptions } from './utils/ssh2.types';
 import * as debug from './utils/debug';
-import chalk from 'chalk';
-import { createServer, Socket } from 'net';
-import { join } from 'path';
-import { promises as fs } from 'fs';
 
 const formatHost: ts.FormatDiagnosticsHost = {
   getCanonicalFileName: path => path,
