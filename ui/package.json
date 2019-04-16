@@ -2,7 +2,7 @@
   "name": "webui",
   "scripts": {
     "setup": "yarn install --non-interactive --silent && yarn",
-    "start": "webpack-dev-server",
+    "dev": "webpack-dev-server",
     "build": "webpack"
   },
   "license": "MIT",

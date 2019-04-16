@@ -10,7 +10,7 @@
     "reboot": "sudo reboot",
     "kill": "kill $(cat /tmp/daemon.pid 2> /dev/null) 2> /dev/null || :",
     "setup": "yarn install --non-interactive --silent --prod && yarn",
-    "dev-watch": "ts-node-dev main.ts",
+    "dev": "ts-node-dev main.ts",
     "start": "ts-node main.ts"
   },
   "main": "main.js",
