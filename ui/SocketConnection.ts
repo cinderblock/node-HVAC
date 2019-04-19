@@ -1,4 +1,4 @@
-import * as io from 'socket.io-client';
+import io = require('socket.io-client');
 
 // config
 const socketURL = undefined;

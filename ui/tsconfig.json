@@ -6,6 +6,7 @@
     "lib": ["es2018", "dom"],
     "outDir": "build",
     "jsx": "react",
+    "esModuleInterop": true,
     "sourceMap": true
   }
 }
