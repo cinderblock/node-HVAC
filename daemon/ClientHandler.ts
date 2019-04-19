@@ -76,12 +76,5 @@ export default function setupClientSocket(eventHandlers: {
     }
   );
 
-  // Send regular updates to UI
-  setInterval(() => {
-    sock.volatile.emit('update', {
-      /* data */
-    });
-  }, 1000 / 30); // at 30 Hz
-
-  return { close: () => sock.close() };
+  return { close: () => sock.close(), update: (state: State) => sock.volatile.emit('update', state) };
 }
