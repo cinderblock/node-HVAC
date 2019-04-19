@@ -6,7 +6,7 @@ import runningProcessChecker from './utils/runningProcessChecker';
 runningProcessChecker('../daemon.pid', 'kill');
 
 // Local dependencies
-import debug from './utils/debug';
+import * as debug from './utils/debug';
 import makeClientHandler from './ClientHandler';
 
 // Events from the clients and how to handle them
@@ -31,8 +31,7 @@ function Shutdown() {
 
     // Just kill the process in a short time in case we've forgotten to stop something...
     setTimeout(() => {
-      debug.error('Something is still running...');
-      debug.warn('Forcing a shutdown.');
+      debug.error('Something is still running...', 'Forcing a shutdown.');
       process.exit(0);
     }, 100).unref();
   });
