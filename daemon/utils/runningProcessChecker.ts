@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'fs';
 
-function isPidRunning(pid) {
+function isPidRunning(pid: number) {
   try {
     return process.kill(pid, 0);
   } catch (e) {

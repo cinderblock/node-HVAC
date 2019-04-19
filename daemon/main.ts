@@ -13,9 +13,13 @@ import makeClientHandler from './ClientHandler';
 const remoteControlServer = makeClientHandler({
   // This event happens when mobile devices report their orientation data to the server.
   // This could be very useful as a remote.
-  // Careful, this event happens at ~60Hz.
-  deviceorientation: orientation => {
-    // debug.log(orientation);
+  // Careful, this event happens at ~60Hz
+  // alpha = phone yaw 0-360 degrees.
+  // beta  = phone pitch +/- 90 degrees
+  // gamma = phone roll  +/- 90 degrees
+  deviceorientation: ({ gamma }: { gamma: number }) => {
+    setState('joystick')(gamma);
+    // debug.log(gamma);
   },
 
   // Shut the whole thing down.

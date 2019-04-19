@@ -7,9 +7,9 @@ import ServerStarter = require('server-starter');
 
 let clientID = 0;
 
-export default function setupClientSocket(eventHandlers) {
+export default function setupClientSocket(eventHandlers: { [eventName: string]: (value: any, ID: number) => void }) {
   // Helper function that is run every time a new webUI connects to us
-  function setupClientSocket(sock) {
+  function setupClientSocket(sock: SocketIO.Socket) {
     const ID = clientID++;
 
     // TODO: Do we trust the proxy to set true `x-real-ip` header?
@@ -23,7 +23,7 @@ export default function setupClientSocket(eventHandlers) {
     // Don't listen to client events for a sec on startup.
     // Ignores events that were "sent" after server shutdown (and are therefore still pending)
     setTimeout(() => {
-      sock.on('event', ({ name, value, log }) => {
+      sock.on('event', ({ name, value, log }: { name: string; value: any; log: boolean }) => {
         if (log)
           console.log(
             chalk.grey('Event:'),
