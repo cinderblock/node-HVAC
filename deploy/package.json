@@ -22,11 +22,11 @@
   },
   "devDependencies": {
     "@types/md5-file": "^4.0.0",
-    "@types/node": "^11.9.5",
-    "@types/nodegit": "^0.24.3",
+    "@types/node": "^11.11.0",
+    "@types/nodegit": "^0.24.4",
     "@types/ssh2": "^0.5.38",
-    "@types/ssh2-streams": "^0.1.5",
-    "ts-node": "^8.0.2",
+    "@types/ssh2-streams": "^0.1.6",
+    "ts-node": "^8.0.3",
     "typescript": "^3.3.3333"
   }
 }
