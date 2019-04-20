@@ -11,6 +11,8 @@ import { ConnectOptions } from './utils/ssh2.types';
 import * as debug from './utils/debug';
 import chalk from 'chalk';
 import { createServer, Socket } from 'net';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const formatHost: ts.FormatDiagnosticsHost = {
   getCanonicalFileName: path => path,
@@ -33,6 +35,17 @@ export default async function watchBuildTransferRun(options: Options) {
   const configPath = ts.findConfigFile(options.local.path, ts.sys.fileExists, 'tsconfig.json');
   if (!configPath) {
     throw new Error('Could not find a valid tsconfig.json.');
+  }
+
+  if (!(options.remote.connect.agent || options.remote.connect.privateKey || options.remote.connect.password)) {
+    if (process.platform === 'win32') options.remote.connect.agent = 'pageant';
+    else if (process.env.SSH_AUTH_SOCK) options.remote.connect.agent = process.env.SSH_AUTH_SOCK;
+    else if (process.env.HOME) {
+      options.remote.connect.privateKey = readFileSync(join(process.env.HOME, '.ssh', 'id_rsa'));
+      // TODO: Handle other keys
+    } else {
+      // No auth defined???
+    }
   }
 
   // TODO: Capture so that we can close gracefully
