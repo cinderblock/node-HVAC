@@ -1,7 +1,7 @@
 {
-  "name": "node-server-ui-base",
+  "name": "node-hvac",
   "version": "0.0.0",
-  "description": "Coupled daemon and UI with bundled deploy scripts",
+  "description": "Simple Node.js based node for controlling/sensing part of a DIY HVAC system",
   "scripts": {
     "setup": "yarn && yarn daemon && yarn deploy && yarn ui && install-vscode-extensions",
     "synchronize-workspace": "yarn --non-interactive --no-progress && yarn daemon --non-interactive --no-progress && yarn deploy --non-interactive --no-progress && yarn ui --non-interactive --no-progress && install-vscode-extensions",

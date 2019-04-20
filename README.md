@@ -1,6 +1,6 @@
-# Node Server UI base
+# Node HVAC
 
-Skeleton for a sever/client JavaScript pair.
+Simple Node.js based node for controlling/sensing part of a DIY HVAC system.
 
 ## Development
 
