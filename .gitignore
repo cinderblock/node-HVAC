@@ -4,3 +4,4 @@ daemon.pid
 daemon.sock
 daemon/build
 ui/build
+deploy/config.ts
