@@ -49,6 +49,7 @@ All of these are run from the top level directory.
 | ------------------------------ | ------------------------------------------------------------------------------------- |
 | `yarn setup`                   | Setup your local machine for development                                              |
 | `yarn ui start`                | Run the web **ui** on your local machine (_dev mode_)                                 |
+| `yarn daemon dev-watch`        | Run **daemon** locally in watch mode with most recent local code                      |
 | `yarn deploy development`      | Run local compiler in watch mode and **daemon** on remote with most recent local code |
 | `yarn ui add some-package`     | Add `some-package` to the ui                                                          |
 | `yarn ui upgrade`              | Upgrade ui packages to latest versions                                                |
