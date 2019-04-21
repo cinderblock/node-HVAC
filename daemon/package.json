@@ -16,11 +16,13 @@
   "main": "main.js",
   "dependencies": {
     "chalk": "^2.4.2",
+    "pigpio": "^1.2.2",
     "server-starter": "^1.6.0",
     "socket.io": "^2.2.0"
   },
   "devDependencies": {
     "@types/node": "^11.11.0",
+    "@types/pigpio": "^1.2.1",
     "@types/socket.io": "^2.1.2",
     "ts-node": "^8.0.3",
     "ts-node-dev": "^1.0.0-pre.32",

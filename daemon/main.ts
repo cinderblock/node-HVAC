@@ -3,39 +3,49 @@
 // Check if a previous version is running first and kill them if they still are.
 import runningProcessChecker from './utils/runningProcessChecker';
 
-runningProcessChecker('../daemon.pid', 'kill');
+runningProcessChecker('./daemon.pid', 'kill');
 
 // Local dependencies
 import * as debug from './utils/debug';
 import makeClientHandler from './ClientHandler';
 
-// Events from the clients and how to handle them
-const remoteControlServer = makeClientHandler({
-  // This event happens when mobile devices report their orientation data to the server.
-  // This could be very useful as a remote.
-  // Careful, this event happens at ~60Hz
-  // alpha = phone yaw 0-360 degrees.
-  // beta  = phone pitch +/- 90 degrees
-  // gamma = phone roll  +/- 90 degrees
-  deviceorientation: ({ gamma }: { gamma: number }) => {
-    // debug.log(gamma);
-  },
+import { Gpio } from 'pigpio';
 
-  // Shut the whole thing down.
-  Shutdown,
-});
+// Events from the clients and how to handle them
+const remoteControlServer = makeClientHandler({});
 
 debug.green('Hello, world.');
 
-function Shutdown() {
-  setImmediate(() => {
-    // Shutdown remote control server
-    remoteControlServer.close();
+const fan = new Gpio(17, { mode: Gpio.OUTPUT });
 
-    // Just kill the process in a short time in case we've forgotten to stop something...
-    setTimeout(() => {
-      debug.error('Something is still running...', 'Forcing a shutdown.');
-      process.exit(0);
-    }, 100).unref();
-  });
+/**
+ * Extract just the time component, in local timezone, in 24-hour format, from a Date
+ */
+function getTime(date = new Date()) {
+  return date.toLocaleTimeString('en-US', { hour12: false });
 }
+
+var nightEnd = '07:30:00';
+var nightStart = '20:00:00';
+
+let fanOn = false;
+let lastFanOn: boolean;
+
+setInterval(async () => {
+  const time = getTime();
+  // console.log(time, nightEnd, nightStart, time < nightEnd, time > nightStart);
+
+  if (time < nightEnd || time > nightStart) {
+    fanOn = true;
+  } else {
+    fanOn = false;
+  }
+
+  if (lastFanOn !== fanOn) {
+    console.log('Turning fan:', fanOn ? 'on' : 'off');
+
+    fan.digitalWrite(fanOn ? 1 : 0);
+
+    lastFanOn = fanOn;
+  }
+}, 10 * 1000);
