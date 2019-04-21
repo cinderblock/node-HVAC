@@ -265,9 +265,9 @@ export default async function watchBuildTransferRun(options: Options) {
     const execOptions: ExecOptions = {};
 
     try {
-      const args = [remoteDaemonDir];
-      debug.variable('Spawning:', 'node', args, execOptions);
-      spawn = await ssh.spawn('node', args, execOptions);
+      const args = ['node', remoteDaemonDir];
+      debug.variable('Spawning:', 'sudo', args, execOptions);
+      spawn = await ssh.spawn('sudo', args, execOptions);
 
       spawn.allowHalfOpen = false;
 
