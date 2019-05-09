@@ -22,8 +22,17 @@ const formatHost: ts.FormatDiagnosticsHost = {
 };
 
 export type Options = {
+  /**
+   * Options related to dealing with a single remote host
+   */
   remote: {
+    /**
+     * Connect options passed to ssh
+     */
     connect: ConnectOptions;
+    /**
+     * Directory on remote that we put everything into
+     */
     directory?: string;
   };
   local?: { module?: string };
