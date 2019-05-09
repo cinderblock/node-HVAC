@@ -16,11 +16,15 @@
   "main": "main.js",
   "dependencies": {
     "chalk": "^2.4.2",
+    "koa": "^2.7.0",
+    "koa-router": "^7.4.0",
     "pigpio": "^1.2.2",
     "server-starter": "^1.6.0",
     "socket.io": "^2.2.0"
   },
   "devDependencies": {
+    "@types/koa": "^2.0.48",
+    "@types/koa-router": "^7.0.40",
     "@types/node": "^11.11.0",
     "@types/pigpio": "^1.2.1",
     "@types/socket.io": "^2.1.2",

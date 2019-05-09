@@ -1,5 +1,8 @@
 'use strict';
 
+import * as Koa from 'koa';
+import * as Router from 'koa-router';
+
 // Check if a previous version is running first and kill them if they still are.
 import runningProcessChecker from './utils/runningProcessChecker';
 
@@ -30,19 +33,38 @@ var nightStart = '20:00:00';
 
 let fanOn = false;
 let lastFanOn: boolean;
+let override: boolean;
+
+const app = new Koa();
+const router = new Router();
+
+router.get('/on', async ctx => {
+  override = true;
+  ctx.body = fanOn;
+});
+
+router.get('/off', async ctx => {
+  override = false;
+  ctx.body = fanOn;
+});
+
+app.use(router.routes());
+
+app.listen(80);
 
 setInterval(async () => {
   const time = getTime();
   // console.log(time, nightEnd, nightStart, time < nightEnd, time > nightStart);
 
-  if (time < nightEnd || time > nightStart) {
-    fanOn = true;
-  } else {
-    fanOn = false;
-  }
+  const program = time < nightEnd || time > nightStart;
+
+  if (override === undefined) fanOn = program;
+  else fanOn = override;
 
   if (lastFanOn !== fanOn) {
     console.log('Turning fan:', fanOn ? 'on' : 'off');
+
+    if (fanOn === override) override = undefined;
 
     fan.digitalWrite(fanOn ? 1 : 0);
 
