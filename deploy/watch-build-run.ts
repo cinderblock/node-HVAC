@@ -26,14 +26,14 @@ export type Options = {
     connect: ConnectOptions;
     directory?: string;
   };
-  local?: { path?: string };
+  local?: { module?: string };
 };
 
 export default async function watchBuildTransferRun(options: Options) {
   options.local = options.local || {};
-  options.local.path = options.local.path || '../daemon/';
+  options.local.module = options.local.module || '../daemon';
 
-  const configPath = ts.findConfigFile(options.local.path, ts.sys.fileExists, 'tsconfig.json');
+  const configPath = ts.findConfigFile(options.local.module, ts.sys.fileExists);
   if (!configPath) {
     throw new Error('Could not find a valid tsconfig.json.');
   }
@@ -108,8 +108,8 @@ export default async function watchBuildTransferRun(options: Options) {
     debug.info('Updating package.json and yarn.lock');
 
     await Promise.all([
-      sftp.fastPut(options.local.path + 'package.json', remoteDaemonDir + '/package.json'),
-      sftp.fastPut(options.local.path + 'yarn.lock', remoteDaemonDir + '/yarn.lock'),
+      sftp.fastPut(options.local.module + '/package.json', remoteDaemonDir + '/package.json'),
+      sftp.fastPut(options.local.module + '/yarn.lock', remoteDaemonDir + '/yarn.lock'),
     ]).catch((e: Error) => {
       debug.error(e.name, 'Failed to put files', e);
     });
@@ -132,8 +132,8 @@ export default async function watchBuildTransferRun(options: Options) {
   }
 
   const packageUpdates = merge(
-    observeFileChange(options.local.path + 'package.json'),
-    observeFileChange(options.local.path + 'yarn.lock')
+    observeFileChange(options.local.module + '/package.json'),
+    observeFileChange(options.local.module + '/yarn.lock')
   )
     // Writes to these files come in bursts. We only need to react after the burst is done.
     .pipe(debounceTime(200))

@@ -8,4 +8,7 @@ export default {
     },
     directory: 'deploy',
   },
+  local: {
+    module: '../daemon',
+  },
 };
