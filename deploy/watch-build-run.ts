@@ -43,9 +43,11 @@ export default async function watchBuildTransferRun(options: Options) {
     else if (process.env.SSH_AUTH_SOCK) options.remote.connect.agent = process.env.SSH_AUTH_SOCK;
     else if (process.env.HOME) {
       const keyFiles = ['id_rsa', 'id_dsa', 'id_ecdsa'];
-      for (const f in keyFiles) {
+      for (const i in keyFiles) {
         try {
-          options.remote.connect.privateKey = await fs.readFile(join(process.env.HOME, '.ssh', f));
+          const file = join(process.env.HOME, '.ssh', keyFiles[i]);
+          options.remote.connect.privateKey = await fs.readFile(file);
+          console.log('Found and loaded private key file:', file);
           break;
         } catch (e) {}
       }
