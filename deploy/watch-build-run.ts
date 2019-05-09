@@ -38,9 +38,19 @@ export type Options = {
   local?: { module?: string };
 };
 
+function isDirectoryString(dir: string) {
+  if (dir === '') return false;
+  if (dir.substr(-1) == '/') return false;
+  return true;
+}
+
 export default async function watchBuildTransferRun(options: Options) {
   options.local = options.local || {};
   options.local.module = options.local.module || '../daemon';
+
+  if (!isDirectoryString(options.local.module)) throw 'Invalid module name specified for options.local.module';
+
+  if (!isDirectoryString(options.remote.directory)) throw 'Invalid remote directory specifier string';
 
   const configPath = ts.findConfigFile(options.local.module, ts.sys.fileExists);
   if (!configPath) {
