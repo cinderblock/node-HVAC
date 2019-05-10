@@ -61,8 +61,8 @@ export default async function watchBuildTransferRun(options: Options) {
   if (!configPath) throw new Error('Could not find a valid tsconfig.json.');
 
   if (!(options.remote.connect.agent || options.remote.connect.privateKey || options.remote.connect.password)) {
-    if (process.platform === 'win32') options.remote.connect.agent = 'pageant';
-    else if (process.env.SSH_AUTH_SOCK) options.remote.connect.agent = process.env.SSH_AUTH_SOCK;
+    if (process.env.SSH_AUTH_SOCK) options.remote.connect.agent = process.env.SSH_AUTH_SOCK;
+    else if (process.platform === 'win32') options.remote.connect.agent = 'pageant';
     else {
       // No agent detected
     }
