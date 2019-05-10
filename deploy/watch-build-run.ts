@@ -35,13 +35,23 @@ export type Options = {
      */
     directory?: string;
   };
-  local?: { module?: string };
+  local?: {
+    basePath?: string;
+    moduleDir?: string;
+  };
 };
 
 function isDirectoryString(dir: string) {
   if (dir === '') return false;
   if (dir.substr(-1) == '/') return false;
   return true;
+}
+
+function isPathString(dir: string) {
+  // return !isDirectoryString(dir);
+  if (dir === '') return true;
+  if (dir.substr(-1) == '/') return true;
+  return false;
 }
 
 /**
@@ -92,17 +102,27 @@ export default async function watchBuildTransferRun(options: Options) {
   //// Initialize our options
 
   options.local = options.local || {};
-  options.local.module = options.local.module || '../daemon';
+  const basePath = options.local.basePath || '../';
+  const moduleDir = options.local.moduleDir || 'daemon';
 
-  if (!isDirectoryString(options.local.module))
-    throw new Error('Invalid module name specified for options.local.module');
+  const localModuleDir = basePath + moduleDir;
+
+  const remotePath = options.remote.directory ? options.remote.directory + '/' : '';
+
+  const remoteModuleDir = remotePath + moduleDir;
 
   // Check options
 
+  if (!isPathString(basePath)) throw new Error('Invalid path specified for options.local.basePath');
+
+  if (!isDirectoryString(moduleDir)) throw new Error('Invalid module directory specified for moduleDir');
+
   if (!isDirectoryString(options.remote.directory)) throw new Error('Invalid remote directory specifier string');
 
-  const configPath = ts.findConfigFile(options.local.module, ts.sys.fileExists);
+  const configPath = ts.findConfigFile(localModuleDir, ts.sys.fileExists);
   if (!configPath) throw new Error('Could not find a valid tsconfig.json.');
+
+  // Defaults for connecting to remote
 
   if (!(options.remote.connect.agent || options.remote.connect.privateKey || options.remote.connect.password)) {
     if (process.env.SSH_AUTH_SOCK) options.remote.connect.agent = process.env.SSH_AUTH_SOCK;
@@ -156,16 +176,16 @@ export default async function watchBuildTransferRun(options: Options) {
     return ssh.exec('mkdir', ['-p', ...(typeof dir === 'string' ? [dir] : dir)], execOptions);
   }
 
-  const remoteDaemonDir = (options.remote.directory ? options.remote.directory + '/' : '') + 'daemon';
-  await mkdir(remoteDaemonDir);
+  await mkdir(remoteModuleDir);
+
+  const manualSyncFiles = ['package.json', 'yarn.lock'];
 
   async function updatePackages() {
     debug.info('📦 Synchronizing package files');
 
-    await Promise.all([
-      sftp.fastPut(options.local.module + '/package.json', remoteDaemonDir + '/package.json'),
-      sftp.fastPut(options.local.module + '/yarn.lock', remoteDaemonDir + '/yarn.lock'),
-    ]).catch((e: Error) => {
+    await Promise.all(
+      manualSyncFiles.map(f => sftp.fastPut(localModuleDir + '/' + f, remoteModuleDir + '/' + f))
+    ).catch((e: Error) => {
       debug.error(e.name, 'Failed to put files', e);
     });
 
@@ -186,10 +206,7 @@ export default async function watchBuildTransferRun(options: Options) {
     buildingCount--;
   }
 
-  const packageUpdates = merge(
-    observeFileChange(options.local.module + '/package.json'),
-    observeFileChange(options.local.module + '/yarn.lock')
-  )
+  const packageUpdates = merge(...manualSyncFiles.map(f => observeFileChange(localModuleDir + '/' + f)))
     // Writes to these files come in bursts. We only need to react after the burst is done.
     .pipe(debounceTime(200))
     // Mark that we're building and shouldn't start a run
@@ -228,15 +245,16 @@ export default async function watchBuildTransferRun(options: Options) {
 
       program.emit(undefined, (filename, source) => data.push([filename, source]));
 
-      const remoteConfig = data.find(([f]) => f == remoteDaemonDir + '/config.remote.js');
-      const localConfig = data.findIndex(([f]) => f == remoteDaemonDir + '/config.js');
+      // Special handling for the config file.
+      const remoteConfig = data.find(([f]) => f == remoteModuleDir + '/config.remote.js');
+      const localConfig = data.findIndex(([f]) => f == remoteModuleDir + '/config.js');
       if (remoteConfig) {
         if (localConfig > -1) {
           debug.info('Removing config.js from copy list');
           data.splice(localConfig, 1);
         }
         debug.info('Renaming config.remote.js in copy list');
-        remoteConfig[0] = remoteDaemonDir + '/config.js';
+        remoteConfig[0] = remoteModuleDir + '/config.js';
       }
 
       // Get a minimized list of the directories needed to be made
@@ -309,7 +327,7 @@ export default async function watchBuildTransferRun(options: Options) {
     const execOptions: ExecOptions = {};
 
     try {
-      const args = [remoteDaemonDir];
+      const args = [remoteModuleDir];
       debug.variable('Spawning:', 'node', args, execOptions);
       spawn = await ssh.spawn('node', args, execOptions);
 
@@ -339,7 +357,7 @@ export default async function watchBuildTransferRun(options: Options) {
 
     const args: string[] = [];
 
-    args.push('--cwd', remoteDaemonDir);
+    args.push('--cwd', remoteModuleDir);
 
     args.push('install');
     args.push('--production');
