@@ -367,6 +367,7 @@ export default async function watchBuildTransferRun(options: Options) {
 
     try {
       const yarn: ClientChannel = await ssh.spawn('yarn', args, execOptions);
+      yarn.allowHalfOpen = false;
 
       // Remove verboseness from ssh.spawn
       yarn.removeAllListeners('finish');
