@@ -390,8 +390,7 @@ export default async function watchBuildTransferRun(options: Options) {
       e => {
         debug.error('Error in Observable:', e);
         ssh.close();
-      },
-      ssh.close
+      }
     );
 }
 
