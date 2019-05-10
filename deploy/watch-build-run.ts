@@ -48,14 +48,13 @@ export default async function watchBuildTransferRun(options: Options) {
   options.local = options.local || {};
   options.local.module = options.local.module || '../daemon';
 
-  if (!isDirectoryString(options.local.module)) throw 'Invalid module name specified for options.local.module';
+  if (!isDirectoryString(options.local.module))
+    throw new Error('Invalid module name specified for options.local.module');
 
-  if (!isDirectoryString(options.remote.directory)) throw 'Invalid remote directory specifier string';
+  if (!isDirectoryString(options.remote.directory)) throw new Error('Invalid remote directory specifier string');
 
   const configPath = ts.findConfigFile(options.local.module, ts.sys.fileExists);
-  if (!configPath) {
-    throw new Error('Could not find a valid tsconfig.json.');
-  }
+  if (!configPath) throw new Error('Could not find a valid tsconfig.json.');
 
   if (!(options.remote.connect.agent || options.remote.connect.privateKey || options.remote.connect.password)) {
     if (process.platform === 'win32') options.remote.connect.agent = 'pageant';
