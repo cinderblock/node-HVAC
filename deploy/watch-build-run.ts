@@ -221,7 +221,7 @@ export default async function watchBuildTransferRun(options: Options) {
   const buildAndPush = new Observable<void>(observable => {
     const host = ts.createWatchCompilerHost(
       configPath,
-      { outDir: options.remote.directory || '' },
+      { outDir: remotePath, rootDir: basePath },
       ts.sys,
       ts.createEmitAndSemanticDiagnosticsBuilderProgram,
       reportDiagnostic,
