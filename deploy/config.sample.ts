@@ -7,6 +7,7 @@ export default {
       // privateKey: 'Full key',
     },
     directory: 'deploy',
+    serviceName: 'node-server-ui-base',
   },
   local: {
     basePath: '../',

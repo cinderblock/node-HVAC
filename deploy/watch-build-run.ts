@@ -34,6 +34,10 @@ export type Options = {
      * Directory on remote that we put everything into
      */
     directory?: string;
+    /**
+     * Systemd service name to use
+     */
+    serviceName?: string;
   };
   local?: {
     basePath?: string;
@@ -111,6 +115,8 @@ export default async function watchBuildTransferRun(options: Options) {
 
   const remoteModuleDir = remotePath + moduleDir;
 
+  const remoteServiceName = options.remote.serviceName || 'node-server-ui-base';
+
   // Check options
 
   if (!isPathString(basePath)) throw new Error('Invalid path specified for options.local.basePath');
@@ -177,6 +183,25 @@ export default async function watchBuildTransferRun(options: Options) {
   }
 
   await mkdir(remoteModuleDir);
+
+  // TODO: Automatic install of systemd service
+
+  /**
+[Unit]
+Description=Test service for developing node-server-ui-base
+After=syslog.target network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/$remote.directory
+ExecStart=/usr/bin/node $moduleDir
+User=pi
+Group=pi
+Restart=no
+
+[Install]
+WantedBy=multi-user.target
+   */
 
   const manualSyncFiles = ['package.json', 'yarn.lock'];
 
@@ -271,9 +296,6 @@ export default async function watchBuildTransferRun(options: Options) {
       // Write all the compiled output from TypeScript Compiler to remote
       await Promise.all(data.map(([file, data]) => sftp.writeFile(file, data, {})));
 
-      // Wait for previous execution to get killed (if not already)
-      await running;
-
       observable.next();
 
       // TODO: Check if there is something that this was doing that we needed.
@@ -287,69 +309,40 @@ export default async function watchBuildTransferRun(options: Options) {
     .pipe(map(doneBuilding))
     .pipe(map(() => debug.green('✔ Sources updated')));
 
-  let running: Promise<void>;
-  let spawn: ClientChannel & { kill: () => void };
-
-  async function killRunning() {
-    type Signal =
-      | 'ABRT'
-      | 'ALRM'
-      | 'FPE'
-      | 'HUP'
-      | 'ILL'
-      | 'INT'
-      | 'KILL'
-      | 'PIPE'
-      | 'QUIT'
-      | 'SEGV'
-      | 'TERM'
-      | 'USR1'
-      | 'USR2';
-
-    const signal: Signal = 'INT';
-
-    if (spawn && running) {
-      debug.grey('Signaling');
-      // TODO: Test this...
-      spawn.kill();
-      spawn = undefined;
-    }
-
-    return running;
-  }
-
-  async function remoteExecNode() {
-    debug.yellow('Running');
-
-    // This means we messed up...
-    if (running) throw 'Already running!';
-
-    const execOptions: ExecOptions = {};
-
-    try {
-      const args = [remoteModuleDir];
-      debug.variable('Spawning:', 'node', args, execOptions);
-      spawn = await ssh.spawn('node', args, execOptions);
-
+  const sudo = (args: string[], options: ExecOptions = {}) =>
+    ssh.spawn('sudo', args, options).then(spawn => {
       spawn.allowHalfOpen = false;
 
       // Remove verboseness from ssh.spawn
       spawn.removeAllListeners('finish');
       spawn.removeAllListeners('close');
 
-      spawn.stdin.on('data', remoteDataPrinter('node', 'stdout'));
-      spawn.stderr.on('data', remoteDataPrinter('node', 'stderr'));
+      return spawn;
+    });
 
-      // TODO: Investigate if this *always* happens...
-      running = new Promise(resolve => {
-        spawn.on('finish', () => {
-          running = undefined;
-          resolve();
-        });
-      });
-    } catch (e) {
-      debug.error('Error running remote node', e);
-    }
+  async function killRunning() {
+    const exec = await sudo(['systemctl', 'stop', remoteServiceName]);
+    exec.on('error', debug.variable);
+    return exec;
+  }
+
+  async function startRemoteExecution() {
+    debug.yellow('Running');
+
+    const exec = await sudo(['systemctl', 'start', remoteServiceName]);
+    exec.on('error', debug.variable);
+
+    debug.green('Remote daemon started');
+  }
+
+  // Watch the execution's output as systemd presents it
+  try {
+    const spawn = await sudo(['journalctl', '-u', remoteServiceName, '-f']);
+
+    spawn.stdin.on('data', remoteDataPrinter('journalctl', 'stdout'));
+    spawn.stderr.on('data', remoteDataPrinter('journalctl', 'stderr'));
+  } catch (e) {
+    debug.error('Error running remote node', e);
   }
 
   async function remoteExecYarn() {
@@ -385,13 +378,10 @@ export default async function watchBuildTransferRun(options: Options) {
   combineLatest(packageUpdates, buildAndPush)
     // .pipe(map(() => debug.info('Build count:', buildingCount)))
     .pipe(filter(() => buildingCount == 0))
-    .subscribe(
-      remoteExecNode,
-      e => {
-        debug.error('Error in Observable:', e);
-        ssh.close();
-      }
-    );
+    .subscribe(startRemoteExecution, e => {
+      debug.error('Error in Observable:', e);
+      ssh.close();
+    });
 }
 
 function reportDiagnostic(diagnostic: ts.Diagnostic) {
