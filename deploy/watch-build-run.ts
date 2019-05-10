@@ -44,6 +44,50 @@ function isDirectoryString(dir: string) {
   return true;
 }
 
+/**
+ * Helper function to print formatted output with useful colors
+ * @param process First string to print
+ * @param stream Regular or Error
+ */
+function remoteDataPrinter(process: string, stream: 'stderr' | 'stdout') {
+  const log = debug.makeVariableLog(
+    { colors: [chalk.grey, chalk.grey, stream == 'stderr' ? chalk.magenta : chalk.yellow], modulo: 0 },
+    'Remote'
+  );
+
+  return (data: Buffer) => {
+    // debug.info('incoming data:', data);
+    data
+      .toString()
+      .trimRight()
+      .split('\n')
+      .map(line => log(process, stream, line.trimRight()));
+    // debug.info('Finished block');
+  };
+}
+
+function makeProxyServer(remoteHost: string, remotePort: number, localPort = remotePort) {
+  // TODO: Capture so that we can close gracefully
+  return createServer(user => {
+    const client = new Socket();
+
+    client.connect(remotePort, remoteHost);
+
+    // 2-way pipe
+    user.pipe(client).pipe(user);
+
+    const colors = [chalk.magenta, chalk.cyan, chalk.yellow, chalk.grey, chalk.dim];
+
+    // Catch non-fatal errors
+    client.on('error', debug.makeVariableLog(colors, 'Proxy client error:'));
+    user.on('error', debug.makeVariableLog(colors, 'Proxy user error:'));
+
+    // TODO: Should we destroy on close?
+    // client.on('close', user.destroy);
+    // user.on('close', client.destroy);
+  }).listen(localPort);
+}
+
 export default async function watchBuildTransferRun(options: Options) {
   //// Initialize our options
 
@@ -83,25 +127,8 @@ export default async function watchBuildTransferRun(options: Options) {
     }
   }
 
-  // TODO: Capture so that we can close gracefully
-  createServer(user => {
-    const client = new Socket();
-
-    client.connect(8000, options.remote.connect.host);
-
-    // 2-way pipe
-    user.pipe(client).pipe(user);
-
-    const colors = [chalk.magenta, chalk.cyan, chalk.yellow, chalk.grey, chalk.dim];
-
-    // Catch non-fatal errors
-    client.on('error', debug.makeVariableLog(colors, 'Proxy client error:'));
-    user.on('error', debug.makeVariableLog(colors, 'Proxy user error:'));
-
-    // TODO: Should we destroy on close?
-    // client.on('close', user.destroy);
-    // user.on('close', client.destroy);
-  }).listen(8000);
+  // Create a proxy so that the ui running locally can talk to the daemon as if it were also running locally
+  makeProxyServer(options.remote.connect.host, 8000);
 
   // For later maybe
   options.remote.connect.reconnectDelay = options.remote.connect.reconnectDelay || 250;
@@ -271,23 +298,6 @@ export default async function watchBuildTransferRun(options: Options) {
     }
 
     return running;
-  }
-
-  function remoteDataPrinter(process: string, stream: 'stderr' | 'stdout') {
-    const log = debug.makeVariableLog(
-      { colors: [chalk.grey, chalk.grey, stream == 'stderr' ? chalk.magenta : chalk.yellow], modulo: 0 },
-      'Remote'
-    );
-
-    return (data: Buffer) => {
-      // debug.info('incoming data:', data);
-      data
-        .toString()
-        .trimRight()
-        .split('\n')
-        .map(line => log(process, stream, line.trimRight()));
-      // debug.info('Finished block');
-    };
   }
 
   async function remoteExecNode() {
