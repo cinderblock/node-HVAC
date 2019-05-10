@@ -362,8 +362,7 @@ export default async function watchBuildTransferRun(options: Options) {
     args.push('install');
     args.push('--production');
     args.push('--non-interactive');
-    args.push('--network-concurrency');
-    args.push('1');
+    args.push('--network-concurrency', '1');
     args.push('--no-progress');
 
     try {
