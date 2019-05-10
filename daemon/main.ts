@@ -13,7 +13,6 @@ const remoteControlServer = makeClientHandler({
   // beta  = phone pitch +/- 90 degrees
   // gamma = phone roll  +/- 90 degrees
   deviceorientation: ({ gamma }: { gamma: number }) => {
-    setState('joystick')(gamma);
     // debug.log(gamma);
   },
 
