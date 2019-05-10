@@ -45,11 +45,15 @@ function isDirectoryString(dir: string) {
 }
 
 export default async function watchBuildTransferRun(options: Options) {
+  //// Initialize our options
+
   options.local = options.local || {};
   options.local.module = options.local.module || '../daemon';
 
   if (!isDirectoryString(options.local.module))
     throw new Error('Invalid module name specified for options.local.module');
+
+  // Check options
 
   if (!isDirectoryString(options.remote.directory)) throw new Error('Invalid remote directory specifier string');
 
@@ -99,7 +103,9 @@ export default async function watchBuildTransferRun(options: Options) {
     // user.on('close', client.destroy);
   }).listen(8000);
 
+  // For later maybe
   options.remote.connect.reconnectDelay = options.remote.connect.reconnectDelay || 250;
+  // Don't try to support reconnect for now. TODO: Support reconnect.
   options.remote.connect.reconnect = false;
 
   // options.remote.connect.debug = msg => debug.info('SSH DEBUG:', msg);
@@ -113,6 +119,10 @@ export default async function watchBuildTransferRun(options: Options) {
 
   const sftp = ssh.sftp();
 
+  /**
+   * Helper function to create directories on our connected host.
+   * @param dir Directory (or array of) to create on connected remote
+   */
   async function mkdir(dir: string | string[]) {
     const execOptions: ExecOptions = {};
 
@@ -123,7 +133,7 @@ export default async function watchBuildTransferRun(options: Options) {
   await mkdir(remoteDaemonDir);
 
   async function updatePackages() {
-    debug.info('Updating package.json and yarn.lock');
+    debug.info('📦 Synchronizing package files');
 
     await Promise.all([
       sftp.fastPut(options.local.module + '/package.json', remoteDaemonDir + '/package.json'),
@@ -132,11 +142,11 @@ export default async function watchBuildTransferRun(options: Options) {
       debug.error(e.name, 'Failed to put files', e);
     });
 
-    debug.info('Updated package.json and yarn.lock');
+    debug.info('📦 Updating module dependencies');
 
     await remoteExecYarn();
 
-    debug.info('Yarn ran');
+    debug.info('📦 Dependencies up to date');
   }
 
   let buildingCount = 0;
@@ -162,7 +172,7 @@ export default async function watchBuildTransferRun(options: Options) {
     // Copy the files and run yarn over ssh. Don't re-run until that is complete.
     .pipe(mergeMap(updatePackages))
     .pipe(map(doneBuilding))
-    .pipe(map(() => debug.green('Packages updated')));
+    .pipe(map(() => debug.green('✔ Packages updated')));
 
   const buildAndPush = new Observable<void>(observable => {
     const host = ts.createWatchCompilerHost(
@@ -176,7 +186,7 @@ export default async function watchBuildTransferRun(options: Options) {
 
     const origCreateProgram = host.createProgram;
     host.createProgram = (rootNames: ReadonlyArray<string>, options, host, oldProgram) => {
-      debug.cyan('Starting new compilation');
+      debug.cyan('🔨 Starting new compilation');
       markBuilding();
       // Might be nice to wait for it to finish... Not sure how.
       killRunning();
@@ -185,7 +195,7 @@ export default async function watchBuildTransferRun(options: Options) {
 
     const origPostProgramCreate = host.afterProgramCreate;
     host.afterProgramCreate = async program => {
-      debug.magenta('Finished compilations');
+      debug.magenta('🔨 Finished compilations');
 
       const data: [string, string][] = [];
 
@@ -202,6 +212,7 @@ export default async function watchBuildTransferRun(options: Options) {
         remoteConfig[0] = remoteDaemonDir + '/config.js';
       }
 
+      // Get a minimized list of the directories needed to be made
       const dirs = data
         // Strip filenames
         .map(([filename]) => filename.replace(/\/[^/]*$/, ''))
@@ -212,6 +223,7 @@ export default async function watchBuildTransferRun(options: Options) {
 
       await mkdir(dirs);
 
+      // Write all the compiled output from TypeScript Compiler to remote
       await Promise.all(data.map(([file, data]) => sftp.writeFile(file, data, {})));
 
       // Wait for previous execution to get killed (if not already)
@@ -228,7 +240,7 @@ export default async function watchBuildTransferRun(options: Options) {
     // TODO: return teardown logic
   })
     .pipe(map(doneBuilding))
-    .pipe(map(() => debug.green('Sources updated')));
+    .pipe(map(() => debug.green('✔ Sources updated')));
 
   let running: Promise<void>;
   let spawn: ClientChannel & { kill: () => void };
