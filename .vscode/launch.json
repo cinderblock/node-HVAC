@@ -5,11 +5,11 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "chrome",
+      "type": "node",
       "request": "launch",
-      "name": "Launch Chrome against localhost ui",
-      "url": "http://localhost:9001",
-      "webRoot": "${workspaceFolder}/ui"
+      "name": "Launch Program",
+      "program": "${workspaceFolder}/deploy/watch-build-run.ts",
+      "outFiles": ["${workspaceFolder}/**/*.js"]
     }
   ]
 }

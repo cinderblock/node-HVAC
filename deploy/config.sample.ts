@@ -7,5 +7,10 @@ export default {
       // privateKey: 'Full key',
     },
     directory: 'deploy',
+    serviceName: 'hvac',
+  },
+  local: {
+    basePath: '../',
+    moduleDir: 'daemon',
   },
 };

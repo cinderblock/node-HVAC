@@ -22,46 +22,70 @@ const formatHost: ts.FormatDiagnosticsHost = {
 };
 
 export type Options = {
+  /**
+   * Options related to dealing with a single remote host
+   */
   remote: {
+    /**
+     * Connect options passed to ssh
+     */
     connect: ConnectOptions;
+    /**
+     * Directory on remote that we put everything into
+     */
     directory?: string;
+    /**
+     * Systemd service name to use
+     */
+    serviceName?: string;
   };
-  local?: { path?: string };
+  local?: {
+    basePath?: string;
+    moduleDir?: string;
+  };
 };
 
-export default async function watchBuildTransferRun(options: Options) {
-  options.local = options.local || {};
-  options.local.path = options.local.path || '../daemon/';
+function isDirectoryString(dir: string) {
+  if (dir === '') return false;
+  if (dir.substr(-1) == '/') return false;
+  return true;
+}
 
-  const configPath = ts.findConfigFile(options.local.path, ts.sys.fileExists, 'tsconfig.json');
-  if (!configPath) {
-    throw new Error('Could not find a valid tsconfig.json.');
-  }
+function isPathString(dir: string) {
+  // return !isDirectoryString(dir);
+  if (dir === '') return true;
+  if (dir.substr(-1) == '/') return true;
+  return false;
+}
 
-  if (!(options.remote.connect.agent || options.remote.connect.privateKey || options.remote.connect.password)) {
-    if (process.platform === 'win32') options.remote.connect.agent = 'pageant';
-    else if (process.env.SSH_AUTH_SOCK) options.remote.connect.agent = process.env.SSH_AUTH_SOCK;
-    else if (process.env.HOME) {
-      const keyFiles = ['id_rsa', 'id_dsa', 'id_ecdsa'];
-      for (const f in keyFiles) {
-        try {
-          options.remote.connect.privateKey = await fs.readFile(join(process.env.HOME, '.ssh', f));
-          break;
-        } catch (e) {}
-      }
-      if (!options.remote.connect.privateKey) {
-        // No private key found!
-      }
-    } else {
-      // No auth defined???
-    }
-  }
+/**
+ * Helper function to print formatted output with useful colors
+ * @param process First string to print
+ * @param stream Regular or Error
+ */
+function remoteDataPrinter(process: string, stream: 'stderr' | 'stdout') {
+  const log = debug.makeVariableLog(
+    { colors: [chalk.grey, chalk.grey, stream == 'stderr' ? chalk.magenta : chalk.yellow], modulo: 0 },
+    'Remote'
+  );
 
+  return (data: Buffer) => {
+    // debug.info('incoming data:', data);
+    data
+      .toString()
+      .trimRight()
+      .split('\n')
+      .map(line => log(process, stream, line.trimRight()));
+    // debug.info('Finished block');
+  };
+}
+
+function makeProxyServer(remoteHost: string, remotePort: number, localPort = remotePort) {
   // TODO: Capture so that we can close gracefully
-  createServer(user => {
+  return createServer(user => {
     const client = new Socket();
 
-    client.connect(8000, options.remote.connect.host);
+    client.connect(remotePort, remoteHost);
 
     // 2-way pipe
     user.pipe(client).pipe(user);
@@ -75,9 +99,66 @@ export default async function watchBuildTransferRun(options: Options) {
     // TODO: Should we destroy on close?
     // client.on('close', user.destroy);
     // user.on('close', client.destroy);
-  }).listen(8000);
+  }).listen(localPort);
+}
 
+export default async function watchBuildTransferRun(options: Options) {
+  //// Initialize our options
+
+  options.local = options.local || {};
+  const basePath = options.local.basePath || '../';
+  const moduleDir = options.local.moduleDir || 'daemon';
+
+  const localModuleDir = basePath + moduleDir;
+
+  const remotePath = options.remote.directory ? options.remote.directory + '/' : '';
+
+  const remoteModuleDir = remotePath + moduleDir;
+
+  const remoteServiceName = options.remote.serviceName || 'node-server-ui-base';
+
+  // Check options
+
+  if (!isPathString(basePath)) throw new Error('Invalid path specified for options.local.basePath');
+
+  if (!isDirectoryString(moduleDir)) throw new Error('Invalid module directory specified for moduleDir');
+
+  if (!isDirectoryString(options.remote.directory)) throw new Error('Invalid remote directory specifier string');
+
+  const configPath = ts.findConfigFile(localModuleDir, ts.sys.fileExists);
+  if (!configPath) throw new Error('Could not find a valid tsconfig.json.');
+
+  // Defaults for connecting to remote
+
+  if (!(options.remote.connect.agent || options.remote.connect.privateKey || options.remote.connect.password)) {
+    if (process.env.SSH_AUTH_SOCK) options.remote.connect.agent = process.env.SSH_AUTH_SOCK;
+    else if (process.platform === 'win32') options.remote.connect.agent = 'pageant';
+    else {
+      // No agent detected
+    }
+
+    if (process.env.HOME) {
+      const keyFiles = ['id_rsa', 'id_dsa', 'id_ecdsa'];
+      for (const i in keyFiles) {
+        try {
+          const file = join(process.env.HOME, '.ssh', keyFiles[i]);
+          options.remote.connect.privateKey = await fs.readFile(file);
+          console.log('Found and loaded private key file:', file);
+          break;
+        } catch (e) {}
+      }
+      if (!options.remote.connect.privateKey) {
+        // No private key found!
+      }
+    }
+  }
+
+  // Create a proxy so that the ui running locally can talk to the daemon as if it were also running locally
+  makeProxyServer(options.remote.connect.host, 8000);
+
+  // For later maybe
   options.remote.connect.reconnectDelay = options.remote.connect.reconnectDelay || 250;
+  // Don't try to support reconnect for now. TODO: Support reconnect.
   options.remote.connect.reconnect = false;
 
   // options.remote.connect.debug = msg => debug.info('SSH DEBUG:', msg);
@@ -91,30 +172,53 @@ export default async function watchBuildTransferRun(options: Options) {
 
   const sftp = ssh.sftp();
 
+  /**
+   * Helper function to create directories on our connected host.
+   * @param dir Directory (or array of) to create on connected remote
+   */
   async function mkdir(dir: string | string[]) {
     const execOptions: ExecOptions = {};
 
     return ssh.exec('mkdir', ['-p', ...(typeof dir === 'string' ? [dir] : dir)], execOptions);
   }
 
-  const remoteDaemonDir = (options.remote.directory ? options.remote.directory + '/' : '') + 'daemon';
-  await mkdir(remoteDaemonDir);
+  await mkdir(remoteModuleDir);
+
+  // TODO: Automatic install of systemd service
+
+  /**
+[Unit]
+Description=Test service for developing node-server-ui-base
+After=syslog.target network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/$remote.directory
+ExecStart=/usr/bin/node $moduleDir
+User=pi
+Group=pi
+Restart=no
+
+[Install]
+WantedBy=multi-user.target
+   */
+
+  const manualSyncFiles = ['package.json', 'yarn.lock'];
 
   async function updatePackages() {
-    debug.info('Updating package.json and yarn.lock');
+    debug.info('📦 Synchronizing package files');
 
-    await Promise.all([
-      sftp.fastPut(options.local.path + 'package.json', remoteDaemonDir + '/package.json'),
-      sftp.fastPut(options.local.path + 'yarn.lock', remoteDaemonDir + '/yarn.lock'),
-    ]).catch((e: Error) => {
+    await Promise.all(
+      manualSyncFiles.map(f => sftp.fastPut(localModuleDir + '/' + f, remoteModuleDir + '/' + f))
+    ).catch((e: Error) => {
       debug.error(e.name, 'Failed to put files', e);
     });
 
-    debug.info('Updated package.json and yarn.lock');
+    debug.info('📦 Updating module dependencies');
 
     await remoteExecYarn();
 
-    debug.info('Yarn ran');
+    debug.info('📦 Dependencies up to date');
   }
 
   let buildingCount = 0;
@@ -127,10 +231,7 @@ export default async function watchBuildTransferRun(options: Options) {
     buildingCount--;
   }
 
-  const packageUpdates = merge(
-    observeFileChange(options.local.path + 'package.json'),
-    observeFileChange(options.local.path + 'yarn.lock')
-  )
+  const packageUpdates = merge(...manualSyncFiles.map(f => observeFileChange(localModuleDir + '/' + f)))
     // Writes to these files come in bursts. We only need to react after the burst is done.
     .pipe(debounceTime(200))
     // Mark that we're building and shouldn't start a run
@@ -140,12 +241,12 @@ export default async function watchBuildTransferRun(options: Options) {
     // Copy the files and run yarn over ssh. Don't re-run until that is complete.
     .pipe(mergeMap(updatePackages))
     .pipe(map(doneBuilding))
-    .pipe(map(() => debug.green('Packages updated')));
+    .pipe(map(() => debug.green('✔ Packages updated')));
 
   const buildAndPush = new Observable<void>(observable => {
     const host = ts.createWatchCompilerHost(
       configPath,
-      { outDir: (options.remote.directory || '') + '/daemon' },
+      { outDir: remotePath, rootDir: basePath },
       ts.sys,
       ts.createEmitAndSemanticDiagnosticsBuilderProgram,
       reportDiagnostic,
@@ -154,7 +255,7 @@ export default async function watchBuildTransferRun(options: Options) {
 
     const origCreateProgram = host.createProgram;
     host.createProgram = (rootNames: ReadonlyArray<string>, options, host, oldProgram) => {
-      debug.cyan('Starting new compilation');
+      debug.cyan('🔨 Starting new compilation');
       markBuilding();
       // Might be nice to wait for it to finish... Not sure how.
       killRunning();
@@ -163,23 +264,25 @@ export default async function watchBuildTransferRun(options: Options) {
 
     const origPostProgramCreate = host.afterProgramCreate;
     host.afterProgramCreate = async program => {
-      debug.magenta('Finished compilations');
+      debug.magenta('🔨 Finished compilations');
 
       const data: [string, string][] = [];
 
       program.emit(undefined, (filename, source) => data.push([filename, source]));
 
-      const remoteConfig = data.find(([f]) => f == remoteDaemonDir + '/config.remote.js');
-      const localConfig = data.findIndex(([f]) => f == remoteDaemonDir + '/config.js');
+      // Special handling for the config file.
+      const remoteConfig = data.find(([f]) => f == remoteModuleDir + '/config.remote.js');
+      const localConfig = data.findIndex(([f]) => f == remoteModuleDir + '/config.js');
       if (remoteConfig) {
         if (localConfig > -1) {
           debug.info('Removing config.js from copy list');
           data.splice(localConfig, 1);
         }
         debug.info('Renaming config.remote.js in copy list');
-        remoteConfig[0] = remoteDaemonDir + '/config.js';
+        remoteConfig[0] = remoteModuleDir + '/config.js';
       }
 
+      // Get a minimized list of the directories needed to be made
       const dirs = data
         // Strip filenames
         .map(([filename]) => filename.replace(/\/[^/]*$/, ''))
@@ -190,10 +293,8 @@ export default async function watchBuildTransferRun(options: Options) {
 
       await mkdir(dirs);
 
+      // Write all the compiled output from TypeScript Compiler to remote
       await Promise.all(data.map(([file, data]) => sftp.writeFile(file, data, {})));
-
-      // Wait for previous execution to get killed (if not already)
-      await running;
 
       observable.next();
 
@@ -206,88 +307,42 @@ export default async function watchBuildTransferRun(options: Options) {
     // TODO: return teardown logic
   })
     .pipe(map(doneBuilding))
-    .pipe(map(() => debug.green('Sources updated')));
+    .pipe(map(() => debug.green('✔ Sources updated')));
 
-  let running: Promise<void>;
-  let spawn: ClientChannel & { kill: () => void };
-
-  async function killRunning() {
-    type Signal =
-      | 'ABRT'
-      | 'ALRM'
-      | 'FPE'
-      | 'HUP'
-      | 'ILL'
-      | 'INT'
-      | 'KILL'
-      | 'PIPE'
-      | 'QUIT'
-      | 'SEGV'
-      | 'TERM'
-      | 'USR1'
-      | 'USR2';
-
-    const signal: Signal = 'INT';
-
-    if (spawn && running) {
-      debug.grey('Signaling');
-      // TODO: Test this...
-      spawn.kill();
-      spawn = undefined;
-    }
-
-    return running;
-  }
-
-  function remoteDataPrinter(process: string, stream: 'stderr' | 'stdout') {
-    const log = debug.makeVariableLog(
-      { colors: [chalk.grey, chalk.grey, stream == 'stderr' ? chalk.magenta : chalk.yellow], modulo: 0 },
-      'Remote'
-    );
-
-    return (data: Buffer) => {
-      // debug.info('incoming data:', data);
-      data
-        .toString()
-        .trimRight()
-        .split('\n')
-        .map(line => log(process, stream, line.trimRight()));
-      // debug.info('Finished block');
-    };
-  }
-
-  async function remoteExecNode() {
-    debug.yellow('Running');
-
-    // This means we messed up...
-    if (running) throw 'Already running!';
-
-    const execOptions: ExecOptions = {};
-
-    try {
-      const args = ['node', remoteDaemonDir];
-      debug.variable('Spawning:', 'sudo', args, execOptions);
-      spawn = await ssh.spawn('sudo', args, execOptions);
-
+  const sudo = (args: string[], options: ExecOptions = {}) =>
+    ssh.spawn('sudo', args, options).then(spawn => {
       spawn.allowHalfOpen = false;
 
       // Remove verboseness from ssh.spawn
       spawn.removeAllListeners('finish');
       spawn.removeAllListeners('close');
 
-      spawn.stdin.on('data', remoteDataPrinter('node', 'stdout'));
-      spawn.stderr.on('data', remoteDataPrinter('node', 'stderr'));
+      return spawn;
+    });
 
-      // TODO: Investigate if this *always* happens...
-      running = new Promise(resolve => {
-        spawn.on('finish', () => {
-          running = undefined;
-          resolve();
-        });
-      });
-    } catch (e) {
-      debug.error('Error running remote node', e);
-    }
+  async function killRunning() {
+    const exec = await sudo(['systemctl', 'stop', remoteServiceName]);
+    exec.on('error', debug.variable);
+    return exec;
+  }
+
+  async function startRemoteExecution() {
+    debug.yellow('Running');
+
+    const exec = await sudo(['systemctl', 'start', remoteServiceName]);
+    exec.on('error', debug.variable);
+
+    debug.green('Remote daemon started');
+  }
+
+  // Watch the execution's output as systemd presents it
+  try {
+    const spawn = await sudo(['journalctl', '-u', remoteServiceName, '-f']);
+
+    spawn.stdin.on('data', remoteDataPrinter('journalctl', 'stdout'));
+    spawn.stderr.on('data', remoteDataPrinter('journalctl', 'stderr'));
+  } catch (e) {
+    debug.error('Error running remote node', e);
   }
 
   async function remoteExecYarn() {
@@ -295,17 +350,17 @@ export default async function watchBuildTransferRun(options: Options) {
 
     const args: string[] = [];
 
-    args.push('--cwd', remoteDaemonDir);
+    args.push('--cwd', remoteModuleDir);
 
     args.push('install');
     args.push('--production');
     args.push('--non-interactive');
-    args.push('--network-concurrency');
-    args.push('1');
+    args.push('--network-concurrency', '1');
     args.push('--no-progress');
 
     try {
       const yarn: ClientChannel = await ssh.spawn('yarn', args, execOptions);
+      yarn.allowHalfOpen = false;
 
       // Remove verboseness from ssh.spawn
       yarn.removeAllListeners('finish');
@@ -323,14 +378,10 @@ export default async function watchBuildTransferRun(options: Options) {
   combineLatest(packageUpdates, buildAndPush)
     // .pipe(map(() => debug.info('Build count:', buildingCount)))
     .pipe(filter(() => buildingCount == 0))
-    .subscribe(
-      remoteExecNode,
-      e => {
-        debug.error('Error in Observable:', e);
-        ssh.close();
-      },
-      ssh.close
-    );
+    .subscribe(startRemoteExecution, e => {
+      debug.error('Error in Observable:', e);
+      ssh.close();
+    });
 }
 
 function reportDiagnostic(diagnostic: ts.Diagnostic) {

@@ -3,11 +3,6 @@
 import * as Koa from 'koa';
 import * as Router from 'koa-router';
 
-// Check if a previous version is running first and kill them if they still are.
-import runningProcessChecker from './utils/runningProcessChecker';
-
-runningProcessChecker('./daemon.pid', 'kill');
-
 // Local dependencies
 import * as debug from './utils/debug';
 import makeClientHandler from './ClientHandler';
