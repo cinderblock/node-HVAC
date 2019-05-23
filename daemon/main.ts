@@ -64,7 +64,7 @@ setInterval(async () => {
   if (lastFanOn !== fanOn) {
     console.log('Turning fan:', fanOn ? 'on' : 'off');
 
-    if (fanOn === override) override = undefined;
+    if (program === override) override = undefined;
 
     fan.digitalWrite(fanOn ? 1 : 0);
 
