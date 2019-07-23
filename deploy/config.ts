@@ -1,12 +1,10 @@
 export default {
   remote: {
     connect: {
-      username: 'user',
-      host: 'some.host',
-      // agent: 'pageant',
-      // privateKey: 'Full key',
+      username: 'pi',
+      host: 'fannypi.tsl',
     },
-    directory: 'deploy',
+    directory: 'hvac',
     serviceName: 'hvac',
   },
   local: {
