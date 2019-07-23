@@ -1,4 +1,2 @@
-export default {
-  pidFile: '/home/pi/twilld.pid',
-  dataDir: '/home/pi/data-files',
-};
+// Deploy automatically replaces config.ts with this file (config.remote.ts) on remote execution.
+export default {};

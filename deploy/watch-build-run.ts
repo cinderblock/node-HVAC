@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import { createServer, Socket } from 'net';
-import { join } from 'path';
-import { promises as fs } from 'fs';
+import path from 'path';
+import fs from 'fs';
 
-import SSH2Promise = require('ssh2-promise');
-import ts = require('typescript');
+import SSH2Promise from 'ssh2-promise';
+import ts from 'typescript';
 import { Observable, combineLatest, merge } from 'rxjs';
 import { debounceTime, map, filter, mergeMap } from 'rxjs/operators';
 import { ClientChannel, ExecOptions } from 'ssh2';
@@ -123,7 +123,10 @@ export default async function watchBuildTransferRun(options: Options) {
 
   if (!isDirectoryString(moduleDir)) throw new Error('Invalid module directory specified for moduleDir');
 
-  if (!isDirectoryString(options.remote.directory)) throw new Error('Invalid remote directory specifier string');
+  if (!options.remote.connect.host) throw new Error('Must specify remote host');
+
+  if (options.remote.directory === undefined || !isDirectoryString(options.remote.directory))
+    throw new Error('Invalid remote directory specifier string');
 
   const configPath = ts.findConfigFile(localModuleDir, ts.sys.fileExists);
   if (!configPath) throw new Error('Could not find a valid tsconfig.json.');
@@ -141,8 +144,8 @@ export default async function watchBuildTransferRun(options: Options) {
       const keyFiles = ['id_rsa', 'id_dsa', 'id_ecdsa'];
       for (const i in keyFiles) {
         try {
-          const file = join(process.env.HOME, '.ssh', keyFiles[i]);
-          options.remote.connect.privateKey = await fs.readFile(file);
+          const file = path.join(process.env.HOME, '.ssh', keyFiles[i]);
+          options.remote.connect.privateKey = await fs.promises.readFile(file);
           console.log('Found and loaded private key file:', file);
           break;
         } catch (e) {}
@@ -156,10 +159,8 @@ export default async function watchBuildTransferRun(options: Options) {
   // Create a proxy so that the ui running locally can talk to the daemon as if it were also running locally
   makeProxyServer(options.remote.connect.host, 8000);
 
-  // For later maybe
+  // Set to a nice low value (250ms) because why not
   options.remote.connect.reconnectDelay = options.remote.connect.reconnectDelay || 250;
-  // Don't try to support reconnect for now. TODO: Support reconnect.
-  options.remote.connect.reconnect = false;
 
   // options.remote.connect.debug = msg => debug.info('SSH DEBUG:', msg);
 
@@ -254,7 +255,7 @@ WantedBy=multi-user.target
     );
 
     const origCreateProgram = host.createProgram;
-    host.createProgram = (rootNames: ReadonlyArray<string>, options, host, oldProgram) => {
+    host.createProgram = (rootNames, options, host, oldProgram) => {
       debug.cyan('🔨 Starting new compilation');
       markBuilding();
       // Might be nice to wait for it to finish... Not sure how.
