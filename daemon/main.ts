@@ -35,12 +35,12 @@ const router = new Router();
 
 router.get('/on', async ctx => {
   override = true;
-  ctx.body = fanOn;
+  ctx.body = '<html><body>Forcing fan <strong>on</strong> <i>until next program command</i></body></html>';
 });
 
 router.get('/off', async ctx => {
   override = false;
-  ctx.body = fanOn;
+  ctx.body = '<html><body>Forcing fan <strong>off</strong> <i>until next program command</i></body></html>';
 });
 
 app.use(router.routes());
